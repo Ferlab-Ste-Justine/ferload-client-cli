@@ -2,14 +2,16 @@ package ca.ferlab.ferload.client.clients
 
 import ca.ferlab.ferload.client.clients.inf.IFerload
 import ca.ferlab.ferload.client.configurations.{FerloadUrl, UserConfig}
-import org.apache.http.HttpResponse
-import org.apache.http.client.methods.{HttpGet, HttpRequestBase}
+import org.apache.http.client.methods.{HttpGet, HttpPost, HttpRequestBase}
+import org.apache.http.entity.{ContentType, StringEntity}
 import org.apache.http.impl.client.{CloseableHttpClient, HttpClientBuilder}
 import org.apache.http.util.EntityUtils
+import org.apache.http.{HttpHeaders, HttpResponse}
 import org.json.JSONObject
 
 import java.io.File
 import java.net.URL
+import scala.io.Source
 
 class FerloadClient(userConfig: UserConfig) extends IFerload {
 
@@ -17,25 +19,42 @@ class FerloadClient(userConfig: UserConfig) extends IFerload {
   val http: CloseableHttpClient = httpBuilder.build()
   val url = new URL(userConfig.get(FerloadUrl))
   private val charset = "UTF-8"
+  private val separator = "\n"
 
-  override def getDownloadLink(token: String, manifest: File): String = "download_link"
-
-  override def getConfig: JSONObject = {
-    val requestUrl = new URL(url, "/config").toString
-    val httpRequest = new HttpGet(requestUrl)
-    val response = executeHttpRequest(httpRequest)
-    response
+  override def getLinks(token: String, manifest: File): Array[String] = {
+    val manifestSource = Source.fromFile(manifest)
+    // drop manifest header + properly close the source
+    val manifestContent = try manifestSource.getLines().drop(1).mkString(separator) finally manifestSource.close()
+    val requestUrl = new URL(url, "/link").toString
+    val httpRequest = new HttpPost(requestUrl)
+    httpRequest.addHeader(HttpHeaders.AUTHORIZATION, s"Bearer $token")
+    httpRequest.addHeader(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType)
+    httpRequest.setEntity(new StringEntity(manifestContent))
+    val (body, status) = executeHttpRequest(httpRequest)
+    status match {
+      case 200 => body.split(separator)
+      case 403 => throw new IllegalStateException(formatExceptionMessage("No enough access rights to download the following files: ", status, body))
+      case _ => throw new IllegalStateException(formatExceptionMessage("Failed to retrieve download link(s)", status, body))
+    }
   }
 
-  private def executeHttpRequest(request: HttpRequestBase): JSONObject = {
+  override def getConfig: JSONObject = {
+    val requestUrl = new URL(url, "/config2").toString
+    val httpRequest = new HttpGet(requestUrl)
+    val (body, status) = executeHttpRequest(httpRequest)
+    if (status != 200) throw new IllegalStateException(formatExceptionMessage("Failed to retrieve Ferload config", status, body))
+    new JSONObject(body)
+  }
+
+  private def executeHttpRequest(request: HttpRequestBase): (String, Int) = {
     val response: HttpResponse = http.execute(request)
-    val body = response.getStatusLine.getStatusCode match {
-      case statusCode if (statusCode >= 200 && statusCode < 299) => Option(response.getEntity)
-        .map(e => new JSONObject(EntityUtils.toString(e, charset))).orNull
-      case statusCode => throw new RuntimeException(s"Failed to execute request $request, response code $statusCode")
-    }
+    val body = Option(response.getEntity).map(e => EntityUtils.toString(e, charset)).orNull
     // always properly close
     EntityUtils.consumeQuietly(response.getEntity)
-    body
+    (body, response.getStatusLine.getStatusCode)
+  }
+
+  private def formatExceptionMessage(message: String, status: Int, reason: String) = {
+    s"$message, code: $status, message:\n$reason"
   }
 }

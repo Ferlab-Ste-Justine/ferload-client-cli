@@ -55,10 +55,10 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
     }
 
     val mockFerload: IFerload = new IFerload {
-      override def getDownloadLink(token: String, manifest: File): String = {
+      override def getLinks(token: String, manifest: File): Array[String] = {
         assert(token.equals("token"))
         assert(manifest.getName.equals("manifest.tsv"))
-        "link"
+        Array("link1", "link2", "link3")
       }
 
       override def getConfig: JSONObject = ???

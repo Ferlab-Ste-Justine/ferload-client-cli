@@ -12,7 +12,7 @@ class BaseCommand(appConfig: Config) {
 
   def printIntroduction(): Unit = {
     println("Welcome to Ferload Client, this tools will download the files based\n" +
-      "on the provided manifest. For any questions of feedbacks please contact:\n" +
+      "on the provided manifest. For any questions or feedbacks please contact:\n" +
       appConfig.getString("contact") + "\n")
   }
 

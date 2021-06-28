@@ -9,6 +9,7 @@ import picocli.CommandLine
 import picocli.CommandLine.{Command, Option}
 
 import java.io.File
+import scala.io.Source
 
 @Command(name = "download", mixinStandardHelpOptions = true, description = Array("Download files based on provided manifest."),
   version = Array("0.1"))
@@ -57,11 +58,12 @@ class Download(userConfig: UserConfig,
         }
       }.execute()
 
-      var link: String = new CommandBlock[String]("Ask Ferload a download link", successEmoji, padding) {
-        override def run(): String = {
-          ferload.getDownloadLink(token, manifestFile)
+      var links: Array[String] = new CommandBlock[Array[String]]("Retrieve Ferload download link(s)", successEmoji, padding) {
+        override def run(): Array[String] = {
+          ferload.getLinks(token, manifestFile)
         }
       }.execute()
+
 
       val download: File = new CommandBlock[File]("Perform download", successEmoji, padding) {
         override def run(): File = {
@@ -76,8 +78,14 @@ class Download(userConfig: UserConfig,
 
   private def getManifestFile: File = {
     val file: File = new File(manifest)
-    scala.Option(file).filter(_.exists())
-      .getOrElse(throw new IllegalStateException("Can't found manifest file at location: " + manifest))
+    scala.Option(file)
+      .filter(_.exists())
+      .orElse(throw new IllegalStateException("Can't found manifest file at location: " + manifest))
+      .filter(f => {
+        val source = Source.fromFile(f) // first line is the TSV header, check if valid
+        try source.getLines().next().trim.equals("file_id") finally source.close()
+      }).orElse(throw new IllegalStateException(s"Invalid manifest file, can't find column: ${appConfig.getString("manifest-header")}"))
+      .get
   }
 
 }
