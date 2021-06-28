@@ -1,0 +1,81 @@
+package ca.ferlab.ferload.client.commands
+
+import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak}
+import ca.ferlab.ferload.client.commands.factory.{BaseCommand, CommandBlock}
+import ca.ferlab.ferload.client.configurations._
+import com.typesafe.config.Config
+import org.apache.commons.lang3.StringUtils
+import picocli.CommandLine
+import picocli.CommandLine.{Command, Option}
+
+import java.io.File
+
+@Command(name = "download", mixinStandardHelpOptions = true, description = Array("Download files based on provided manifest."),
+  version = Array("0.1"))
+class Download(userConfig: UserConfig,
+               appConfig: Config,
+               commandLine: ICommandLine,
+               keycloak: IKeycloak,
+               ferload: IFerload) extends BaseCommand(appConfig) with Runnable {
+
+  @Option(names = Array("-m", "--manifest"), description = Array("manifest file location (default: ${DEFAULT-VALUE})"))
+  var manifest: String = "manifest.tsv"
+
+  @Option(names = Array("-o", "--output-dir"), description = Array("downloads location (default: ${DEFAULT-VALUE})"))
+  var outputDir: String = "."
+
+  override def run(): Unit = {
+
+    val clientId = userConfig.get(ClientId)
+    val secretKey = userConfig.get(SecretKey)
+    val username = userConfig.get(Username)
+    val password = userConfig.get(Password)
+
+    if (StringUtils.isAnyBlank(clientId, secretKey, username, password)) {
+      println("Configuration is missing, please fill the missing information first.")
+      println()
+      new CommandLine(new Configure(userConfig, appConfig, commandLine)).execute()
+      println("Please retry the last command.")
+      println()
+    } else {
+
+      printIntroduction
+
+      val padding = appConfig.getInt("padding")
+
+      val manifestFile: File = new CommandBlock[File]("Checking manifest file", successEmoji, padding) {
+        override def run(): File = {
+          getManifestFile
+        }
+      }.execute()
+
+      val token: String = new CommandBlock[String]("Retrieve user credentials", successEmoji, padding) {
+        override def run(): String = {
+          keycloak.getUserCredentials(username, password)
+        }
+      }.execute()
+
+      var link: String = new CommandBlock[String]("Ask Ferload a download link", successEmoji, padding) {
+        override def run(): String = {
+          ferload.getDownloadLink(token, manifestFile)
+        }
+      }.execute()
+
+      val download: File = new CommandBlock[File]("Perform download", successEmoji, padding) {
+        override def run(): File = {
+          new File("download.zip")
+        }
+      }.execute()
+
+      println(s"The downloaded file is available here: ${download.getAbsolutePath}")
+      println()
+    }
+  }
+
+  private def getManifestFile: File = {
+    val file: File = new File(manifest)
+    scala.Option(file).filter(_.exists())
+      .getOrElse(throw new IllegalStateException("Can't found manifest file at location: " + manifest))
+  }
+
+}
