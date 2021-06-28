@@ -29,20 +29,18 @@ object Main {
       val userHome: String = System.getProperty("user.home")
       val baseConfig = ConfigFactory.load
       val appConfig: Config = baseConfig.getObject("ferload-client").toConfig
-      val keycloakConfig: Config = baseConfig.getObject("keycloak").toConfig
-      val ferloadConfig: Config = baseConfig.getObject("ferload").toConfig
       val userConfig: UserConfig = new UserConfig(s"$userHome${File.separator}${appConfig.getString("config-name")}")
 
       // used to customize command instances creation passing required dependencies
       val commandFactory = new CommandFactory(userConfig, appConfig,
         new ConsoleCommandLine,
-        new KeycloakClient(userConfig, keycloakConfig),
-        new FerloadClient(ferloadConfig))
+        new KeycloakClient(userConfig),
+        new FerloadClient(userConfig))
 
       val commandLine = new CommandLine(new Main, commandFactory)
       if (args.nonEmpty) {
         System.exit(commandLine.execute(args: _*))
-      } else { // display usage if no subcommand
+      } else { // display usage if no sub-command
         commandLine.usage(System.out)
       }
     }

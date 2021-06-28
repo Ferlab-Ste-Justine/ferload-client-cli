@@ -12,6 +12,7 @@ libraryDependencies += "com.typesafe" % "config" % "1.4.1"
 libraryDependencies += "org.keycloak" % "keycloak-authz-client" % "12.0.3"
 libraryDependencies += "commons-httpclient" % "commons-httpclient" % "3.1"
 libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.12.0"
+libraryDependencies += "org.json" % "json" % "20210307"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.7" % "test"
 

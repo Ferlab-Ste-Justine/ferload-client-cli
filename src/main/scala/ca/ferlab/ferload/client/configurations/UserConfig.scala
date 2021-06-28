@@ -10,8 +10,8 @@ class UserConfig(val path: String) {
 
   reload()
 
-  def get(configName: UserConfigName): String = {
-    props.getProperty(configName.name, null)
+  def get(configName: UserConfigName, defaultValue: String = null): String = {
+    props.getProperty(configName.name, defaultValue)
   }
 
   def set(configName: UserConfigName, value: String): Unit = {
@@ -23,16 +23,16 @@ class UserConfig(val path: String) {
     save()
   }
 
-  def reload(): Unit = {
-    val fis = new FileInputStream(file)
-    props.load(fis)
-    fis.close()
-  }
-
   def save(): Unit = {
     val fos = new FileOutputStream(file)
     props.store(fos, "Automatically generated content")
     fos.close()
+  }
+
+  def reload(): Unit = {
+    val fis = new FileInputStream(file)
+    props.load(fis)
+    fis.close()
   }
 
 }

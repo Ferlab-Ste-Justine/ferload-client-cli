@@ -15,7 +15,7 @@ class CommandFactory(userConfig: UserConfig,
   override def create[K](clazz: Class[K]): K = {
     try {
       if (isClassCommand(clazz, classOf[Configure])) {
-        new Configure(userConfig, appConfig, commandLineInf).asInstanceOf[K]
+        new Configure(userConfig, appConfig, commandLineInf, ferloadInf).asInstanceOf[K]
       } else if (isClassCommand(clazz, classOf[Download])) {
         new Download(userConfig, appConfig, commandLineInf, keycloakInf, ferloadInf).asInstanceOf[K]
       } else {

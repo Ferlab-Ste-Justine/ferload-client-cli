@@ -26,20 +26,22 @@ class Download(userConfig: UserConfig,
 
   override def run(): Unit = {
 
-    val clientId = userConfig.get(ClientId)
-    val secretKey = userConfig.get(SecretKey)
+    val ferloadUrl = userConfig.get(FerloadUrl)
     val username = userConfig.get(Username)
     val password = userConfig.get(Password)
+    val keycloakUrl = userConfig.get(KeycloakUrl)
+    val keycloakRealm = userConfig.get(KeycloakRealm)
+    val keycloakClientId = userConfig.get(KeycloakClientId)
 
-    if (StringUtils.isAnyBlank(clientId, secretKey, username, password)) {
+    if (StringUtils.isAnyBlank(ferloadUrl, username, password, keycloakUrl, keycloakRealm, keycloakClientId)) {
       println("Configuration is missing, please fill the missing information first.")
       println()
-      new CommandLine(new Configure(userConfig, appConfig, commandLine)).execute()
-      println("Please retry the last command.")
+      new CommandLine(new Configure(userConfig, appConfig, commandLine, ferload)).execute()
+      println("Please retry the last command.") // better let the user re-launch than trying to re-execute the command #infiniteloop
       println()
     } else {
 
-      printIntroduction
+      printIntroduction()
 
       val padding = appConfig.getInt("padding")
 

@@ -10,9 +10,10 @@ class BaseCommand(appConfig: Config) {
 
   protected val successEmoji = new String(Character.toChars(0x2705))
 
-  def printIntroduction: Unit = {
+  def printIntroduction(): Unit = {
     println("Welcome to Ferload Client, this tools will download the files based\n" +
       "on the provided manifest. For any questions of feedbacks please contact:\n" +
       appConfig.getString("contact") + "\n")
   }
+
 }

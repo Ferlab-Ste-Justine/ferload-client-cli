@@ -3,6 +3,7 @@ package ca.ferlab.ferload.client.commands
 import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak}
 import ca.ferlab.ferload.client.configurations._
 import com.typesafe.config.{Config, ConfigFactory}
+import org.json.JSONObject
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -16,9 +17,8 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   val mockCommandLineInf: ICommandLine = new ICommandLine {
     override def readLine(fmt: String): String = {
       val mock = fmt.trim match {
-        case "Keycloak client-id" => "123"
-        case "Keycloak secret-key" => "abc"
-        case "Ferload username" => "foo"
+        case "Ferload url" => "http://ferload"
+        case "username" => "foo"
         case _ => fail(s"$fmt isn't mocked")
       }
       mock
@@ -26,7 +26,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
 
     override def readPassword(fmt: String): String = {
       val mock = fmt.trim match {
-        case "Ferload password [hidden]" => "bar"
+        case "password [hidden]" => "bar"
         case _ => fail(s"$fmt isn't mocked")
       }
       mock
@@ -39,15 +39,10 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
 
   test("run configure first") {
     new Download(mockUserConfig, appTestConfig, mockCommandLineInf, null, null).run()
-    assert(mockUserConfig.get(ClientId).equals("123"))
-    assert(mockUserConfig.get(SecretKey).equals("abc"))
-    assert(mockUserConfig.get(Username).equals("foo"))
-    assert(mockUserConfig.get(Password).equals("bar"))
+    assert(mockUserConfig.get(Username).equals("foo")) // at least one value is set
   }
 
   test("call keycloak / ferload") {
-    mockUserConfig.set(ClientId, "123")
-    mockUserConfig.set(SecretKey, "abc")
     mockUserConfig.set(Username, "foo")
     mockUserConfig.set(Password, "bar")
 
@@ -65,6 +60,8 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
         assert(manifest.getName.equals("manifest.tsv"))
         "link"
       }
+
+      override def getConfig: JSONObject = ???
     }
 
     new Download(mockUserConfig, appTestConfig, null, mockKeycloakInf, mockFerload).run()

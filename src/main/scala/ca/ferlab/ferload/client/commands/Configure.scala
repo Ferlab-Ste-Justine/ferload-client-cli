@@ -1,27 +1,25 @@
 package ca.ferlab.ferload.client.commands
 
-import ca.ferlab.ferload.client.clients.inf.ICommandLine
+import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload}
 import ca.ferlab.ferload.client.commands.factory.{BaseCommand, CommandBlock}
 import ca.ferlab.ferload.client.configurations._
 import com.typesafe.config.Config
 import org.apache.commons.lang3.StringUtils
+import org.json.JSONObject
 import picocli.CommandLine.{Command, Option}
 
 import java.util.Optional
 
 @Command(name = "configure", mixinStandardHelpOptions = true, description = Array(" Help configure this tools."), version = Array("0.1"))
-class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommandLine) extends BaseCommand(appConfig) with Runnable {
+class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommandLine, ferload: IFerload) extends BaseCommand(appConfig) with Runnable {
 
-  @Option(names = Array("-c", "--client-id"), description = Array("Keycloak client-id"))
-  var clientId: Optional[String] = Optional.empty // picocli is compatible with Optional (JAVA) not Option (Scala)
+  @Option(names = Array("-f", "--ferload-url"), description = Array("Ferload url"))
+  var ferloadUrl: Optional[String] = Optional.empty
 
-  @Option(names = Array("-s", "--secret-key"), description = Array("Keycloak secret-key"))
-  var secretKey: Optional[String] = Optional.empty
-
-  @Option(names = Array("-u", "--username"), description = Array("Ferload username"))
+  @Option(names = Array("-u", "--username"), description = Array("username"))
   var username: Optional[String] = Optional.empty
 
-  @Option(names = Array("-p", "--password"), description = Array("Ferload password"))
+  @Option(names = Array("-p", "--password"), description = Array("password"))
   var password: Optional[String] = Optional.empty
 
   @Option(names = Array("-r", "--reset"), description = Array("Reset configuration (default: ${DEFAULT-VALUE})"))
@@ -29,7 +27,7 @@ class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommand
 
   override def run(): Unit = {
 
-    printIntroduction
+    printIntroduction()
 
     if (reset) {
       new CommandBlock[Unit]("Reset configuration", successEmoji) {
@@ -39,21 +37,30 @@ class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommand
       }.execute()
     }
 
-    val currentClientId = userConfig.get(ClientId)
-    val currentSecretKey = userConfig.get(SecretKey)
+    val currentFerloadUrl = userConfig.get(FerloadUrl)
     val currentUsername = userConfig.get(Username)
     val currentPassword = userConfig.get(Password)
 
-    if (!StringUtils.isAllEmpty(currentClientId, currentSecretKey, currentUsername, currentPassword)) {
+    // at least one config already exists
+    if (!StringUtils.isAllEmpty(currentFerloadUrl, currentUsername, currentPassword)) {
       println("Press 'enter' to keep the existing configuration [current].")
       println()
     }
 
-    userConfig.set(ClientId, clientId.orElseGet(() => readLine("-c", currentClientId)))
-    userConfig.set(SecretKey, secretKey.orElseGet(() => readLine("-s", currentSecretKey)))
+    userConfig.set(FerloadUrl, ferloadUrl.orElseGet(() => readLine("-f", currentFerloadUrl)))
     userConfig.set(Username, username.orElseGet(() => readLine("-u", currentUsername)))
     userConfig.set(Password, password.orElseGet(() => readLine("-p", currentPassword, password = true)))
     println()
+
+    val ferloadConfig: JSONObject = new CommandBlock[JSONObject]("Retrieve Ferload configuration", successEmoji) {
+      override def run(): JSONObject = {
+        ferload.getConfig
+      }
+    }.execute().getJSONObject("keycloak")
+
+    userConfig.set(KeycloakUrl, ferloadConfig.getString("url"))
+    userConfig.set(KeycloakRealm, ferloadConfig.getString("realm"))
+    userConfig.set(KeycloakClientId, ferloadConfig.getString("client-id"))
 
     new CommandBlock[Unit]("Configuration has been successfully updated", successEmoji) {
       override def run(): Unit = {
