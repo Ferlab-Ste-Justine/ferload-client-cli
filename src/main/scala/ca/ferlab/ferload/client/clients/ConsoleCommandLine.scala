@@ -2,9 +2,24 @@ package ca.ferlab.ferload.client.clients
 
 import ca.ferlab.ferload.client.clients.inf.ICommandLine
 
+import java.io.Console
+import java.util.Scanner
+
 class ConsoleCommandLine extends ICommandLine {
 
-  override def readLine(fmt: String): String = System.console.readLine(s"$fmt: ")
+  // System.console support readPassword which is nice, but if not available use System.in
+  val defaultConsole: Option[Console] = Option(System.console)
+  val fallbackConsole = new Scanner(System.in)
 
-  override def readPassword(fmt: String): String = System.console.readPassword(s"$fmt: ").mkString
+  override def readLine(fmt: String): String = defaultConsole.map(_.readLine(s"$fmt: "))
+    .getOrElse(fallbackReadline(fmt))
+
+  override def readPassword(fmt: String): String = defaultConsole.map(_.readPassword(s"$fmt: ").mkString)
+    .getOrElse(fallbackReadline(fmt))
+
+  private def fallbackReadline(fmt: String) = {
+    print(s"$fmt: ")
+    fallbackConsole.nextLine()
+  }
+
 }

@@ -19,7 +19,8 @@ class FerloadClient(userConfig: UserConfig) extends IFerload {
 
   val httpBuilder: HttpClientBuilder = HttpClientBuilder.create()
   val http: CloseableHttpClient = httpBuilder.build()
-  val url = new URL(userConfig.get(FerloadUrl))
+  // lazy because config may be not available
+  lazy val url = new URL(userConfig.get(FerloadUrl))
   private val charset = "UTF-8"
   private val separator = "\n"
 

@@ -30,6 +30,9 @@ class UserConfig(val path: String) {
   }
 
   def reload(): Unit = {
+    if (!file.exists() && !file.createNewFile()) {
+      throw new IllegalStateException("Failed to create configuration file: " + file.getAbsolutePath)
+    }
     val fis = new FileInputStream(file)
     props.load(fis)
     fis.close()

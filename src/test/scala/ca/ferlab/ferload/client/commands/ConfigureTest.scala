@@ -14,7 +14,7 @@ import java.util
 class ConfigureTest extends AnyFunSuite with BeforeAndAfter {
 
   val appTestConfig: Config = ConfigFactory.load.getObject("ferload-client").toConfig
-  val path: String = "/tmp/.ferload-client.properties"
+  val path: String = File.createTempFile(".ferload-client", ".properties").getAbsolutePath
   val mockUserConfig = new UserConfig(path)
   val mockCommandLineInf: ICommandLine = new ICommandLine {
     override def readLine(fmt: String): String = {

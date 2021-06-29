@@ -22,28 +22,23 @@ class Main extends Runnable {
 
 object Main {
   def main(args: Array[String]): Unit = {
-    if (System.console() == null) {
-      println("This program needs to be run inside a command line environment.")
-    } else {
+    val userHome: String = System.getProperty("user.home")
+    val baseConfig = ConfigFactory.load
+    val appConfig: Config = baseConfig.getObject("ferload-client").toConfig
+    val userConfig: UserConfig = new UserConfig(s"$userHome${File.separator}${appConfig.getString("config-name")}")
 
-      val userHome: String = System.getProperty("user.home")
-      val baseConfig = ConfigFactory.load
-      val appConfig: Config = baseConfig.getObject("ferload-client").toConfig
-      val userConfig: UserConfig = new UserConfig(s"$userHome${File.separator}${appConfig.getString("config-name")}")
+    // used to customize command instances creation passing required dependencies
+    val commandFactory = new CommandFactory(userConfig, appConfig,
+      new ConsoleCommandLine,
+      new KeycloakClient(userConfig),
+      new FerloadClient(userConfig),
+      new S3Client)
 
-      // used to customize command instances creation passing required dependencies
-      val commandFactory = new CommandFactory(userConfig, appConfig,
-        new ConsoleCommandLine,
-        new KeycloakClient(userConfig),
-        new FerloadClient(userConfig),
-        new S3Client)
-
-      val commandLine = new CommandLine(new Main, commandFactory)
-      if (args.nonEmpty) {
-        System.exit(commandLine.execute(args: _*))
-      } else { // display usage if no sub-command
-        commandLine.usage(System.out)
-      }
+    val commandLine = new CommandLine(new Main, commandFactory)
+    if (args.nonEmpty) {
+      System.exit(commandLine.execute(args: _*))
+    } else { // display usage if no sub-command
+      commandLine.usage(System.out)
     }
   }
 }

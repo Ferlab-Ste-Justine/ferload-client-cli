@@ -6,6 +6,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import org.json.JSONObject
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
+import picocli.CommandLine
 
 import java.io.File
 
@@ -14,6 +15,8 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   val appTestConfig: Config = ConfigFactory.load.getObject("ferload-client").toConfig
   val path: String = "/tmp/.ferload-client.properties"
   val mockUserConfig = new UserConfig(path)
+  val manifestValidFile: String = this.getClass.getClassLoader.getResource("manifest-valid.tsv").getFile
+  val manifestInvalidFile: String = this.getClass.getClassLoader.getResource("manifest-invalid.tsv").getFile
   val mockCommandLineInf: ICommandLine = new ICommandLine {
     override def readLine(fmt: String): String = {
       val mock = fmt.trim match {
@@ -35,11 +38,35 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
 
   before {
     mockUserConfig.clear()
+    mockUserConfig.set(FerloadUrl, "foo")
+    mockUserConfig.set(Username, "foo")
+    mockUserConfig.set(Password, "foo")
+    mockUserConfig.set(KeycloakUrl, "foo")
+    mockUserConfig.set(KeycloakRealm, "foo")
+    mockUserConfig.set(KeycloakClientId, "foo")
   }
 
   test("run configure first") {
+    mockUserConfig.clear()
     new Download(mockUserConfig, appTestConfig, mockCommandLineInf, null, null, null).run()
     assert(mockUserConfig.get(Username).equals("foo")) // at least one value is set
+  }
+
+  test("manifest not found") {
+    assertThrows[IllegalStateException] {
+      new Download(mockUserConfig, appTestConfig, null, null, null, null).run()
+    }
+  }
+
+  test("invalid output-dir") {
+    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, null, null, null, null))
+    assertCommandException(cmd, "Failed to access the output directory", "-o", "/mount")
+  }
+
+  test("manifest invalid") {
+    val manifestFile: String = this.getClass.getClassLoader.getResource("manifest-invalid.tsv").getFile
+    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, null, null, null, null))
+    assertCommandException(cmd, "Invalid manifest file", "-m", manifestInvalidFile)
   }
 
   test("call keycloak / ferload") {
@@ -57,7 +84,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
     val mockFerload: IFerload = new IFerload {
       override def getDownloadLinks(token: String, manifest: File): Map[String, String] = {
         assert(token.equals("token"))
-        assert(manifest.getName.equals("manifest.tsv"))
+        assert(manifest.getName.equals("manifest-valid.tsv"))
         Map("f1" -> "link1", "f2" -> "link2", "f2" -> "link2")
       }
 
@@ -66,11 +93,13 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
 
     val mockS3: IS3 = new IS3 {
       override def download(outputDir: File, links: Map[String, String]): Array[File] = {
-        Array(new File("f1"), new File("f2"), new File("f3"))
+        assert(links.size == 2)
+        Array(new File("f1"), new File("f2"))
       }
     }
 
-    new Download(mockUserConfig, appTestConfig, null, mockKeycloakInf, mockFerload, mockS3).run()
+    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, null, mockKeycloakInf, mockFerload, mockS3))
+    cmd.execute("-m", manifestValidFile)
   }
 
 }

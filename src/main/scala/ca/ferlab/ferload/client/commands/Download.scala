@@ -21,7 +21,7 @@ class Download(userConfig: UserConfig,
                s3: IS3) extends BaseCommand(appConfig) with Runnable {
 
   @Option(names = Array("-m", "--manifest"), description = Array("manifest file location (default: ${DEFAULT-VALUE})"))
-  var manifest: String = "manifest.tsv"
+  var manifest: File = new File("manifest.tsv")
 
   @Option(names = Array("-o", "--output-dir"), description = Array("downloads location (default: ${DEFAULT-VALUE})"))
   var outputDir: File = new File(".")
@@ -45,7 +45,7 @@ class Download(userConfig: UserConfig,
 
       printIntroduction()
 
-      if (!outputDir.exists() && !outputDir.mkdirs()) {
+      if (!outputDir.exists() && !outputDir.mkdirs() || !outputDir.canWrite) {
         throw new IllegalStateException("Failed to access the output directory: " + outputDir.getAbsolutePath)
       }
 
@@ -77,10 +77,9 @@ class Download(userConfig: UserConfig,
   }
 
   private def getManifestFile: File = {
-    val file: File = new File(manifest)
-    scala.Option(file)
+    scala.Option(manifest)
       .filter(_.exists())
-      .orElse(throw new IllegalStateException("Can't found manifest file at location: " + manifest))
+      .orElse(throw new IllegalStateException("Can't found manifest file at location: " + manifest.getAbsolutePath))
       .filter(f => {
         val source = Source.fromFile(f) // first line is the TSV header, check if valid
         try source.getLines().next().trim.equals("file_id") finally source.close()
