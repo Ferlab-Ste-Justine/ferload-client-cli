@@ -23,9 +23,9 @@ class FerloadClient(userConfig: UserConfig) extends IFerload {
 
   override def getLinks(token: String, manifest: File): Array[String] = {
     val manifestSource = Source.fromFile(manifest)
-    // drop manifest header + properly close the source
+    // drop manifest header + properly close the source, send the manifest content as plain text in the POST
     val manifestContent = try manifestSource.getLines().drop(1).mkString(separator) finally manifestSource.close()
-    val requestUrl = new URL(url, "/link").toString
+    val requestUrl = new URL(url, "/downloadLinks").toString
     val httpRequest = new HttpPost(requestUrl)
     httpRequest.addHeader(HttpHeaders.AUTHORIZATION, s"Bearer $token")
     httpRequest.addHeader(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType)
@@ -39,7 +39,7 @@ class FerloadClient(userConfig: UserConfig) extends IFerload {
   }
 
   override def getConfig: JSONObject = {
-    val requestUrl = new URL(url, "/config2").toString
+    val requestUrl = new URL(url, "/config").toString
     val httpRequest = new HttpGet(requestUrl)
     val (body, status) = executeHttpRequest(httpRequest)
     if (status != 200) throw new IllegalStateException(formatExceptionMessage("Failed to retrieve Ferload config", status, body))
