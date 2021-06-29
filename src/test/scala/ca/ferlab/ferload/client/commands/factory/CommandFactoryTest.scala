@@ -6,7 +6,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class CommandFactoryTest extends AnyFunSuite {
 
-  val factory = new CommandFactory(null, null, null, null, null)
+  val factory = new CommandFactory(null, null, null, null, null, null)
 
   test("configure") {
     val cmd = factory.create(classOf[Configure])

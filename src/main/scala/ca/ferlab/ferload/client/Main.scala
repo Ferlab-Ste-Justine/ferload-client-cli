@@ -1,6 +1,6 @@
 package ca.ferlab.ferload.client
 
-import ca.ferlab.ferload.client.clients.{ConsoleCommandLine, FerloadClient, KeycloakClient}
+import ca.ferlab.ferload.client.clients.{ConsoleCommandLine, FerloadClient, KeycloakClient, S3Client}
 import ca.ferlab.ferload.client.commands.factory.CommandFactory
 import ca.ferlab.ferload.client.commands.{Configure, Download}
 import ca.ferlab.ferload.client.configurations.UserConfig
@@ -35,7 +35,8 @@ object Main {
       val commandFactory = new CommandFactory(userConfig, appConfig,
         new ConsoleCommandLine,
         new KeycloakClient(userConfig),
-        new FerloadClient(userConfig))
+        new FerloadClient(userConfig),
+        new S3Client)
 
       val commandLine = new CommandLine(new Main, commandFactory)
       if (args.nonEmpty) {

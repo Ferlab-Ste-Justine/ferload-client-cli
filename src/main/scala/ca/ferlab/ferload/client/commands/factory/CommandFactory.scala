@@ -1,6 +1,6 @@
 package ca.ferlab.ferload.client.commands.factory
 
-import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak}
+import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak, IS3}
 import ca.ferlab.ferload.client.commands.{Configure, Download}
 import ca.ferlab.ferload.client.configurations.UserConfig
 import com.typesafe.config.Config
@@ -11,13 +11,14 @@ class CommandFactory(userConfig: UserConfig,
                      appConfig: Config,
                      commandLineInf: ICommandLine,
                      keycloakInf: IKeycloak,
-                     ferloadInf: IFerload) extends IFactory {
+                     ferloadInf: IFerload,
+                     s3Inf: IS3) extends IFactory {
   override def create[K](clazz: Class[K]): K = {
     try {
       if (isClassCommand(clazz, classOf[Configure])) {
         new Configure(userConfig, appConfig, commandLineInf, ferloadInf).asInstanceOf[K]
       } else if (isClassCommand(clazz, classOf[Download])) {
-        new Download(userConfig, appConfig, commandLineInf, keycloakInf, ferloadInf).asInstanceOf[K]
+        new Download(userConfig, appConfig, commandLineInf, keycloakInf, ferloadInf, s3Inf).asInstanceOf[K]
       } else {
         throw new IllegalStateException("Unknown command: " + clazz.getName)
       }

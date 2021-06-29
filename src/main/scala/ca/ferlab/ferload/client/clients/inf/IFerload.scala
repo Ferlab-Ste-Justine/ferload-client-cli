@@ -7,5 +7,5 @@ import java.io.File
 trait IFerload {
   def getConfig: JSONObject
 
-  def getLinks(token: String, manifest: File): Array[String]
+  def getDownloadLinks(token: String, manifest: File): Map[String, String]
 }

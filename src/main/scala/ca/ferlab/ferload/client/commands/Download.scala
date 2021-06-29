@@ -1,6 +1,6 @@
 package ca.ferlab.ferload.client.commands
 
-import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak}
+import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak, IS3}
 import ca.ferlab.ferload.client.commands.factory.{BaseCommand, CommandBlock}
 import ca.ferlab.ferload.client.configurations._
 import com.typesafe.config.Config
@@ -17,13 +17,14 @@ class Download(userConfig: UserConfig,
                appConfig: Config,
                commandLine: ICommandLine,
                keycloak: IKeycloak,
-               ferload: IFerload) extends BaseCommand(appConfig) with Runnable {
+               ferload: IFerload,
+               s3: IS3) extends BaseCommand(appConfig) with Runnable {
 
   @Option(names = Array("-m", "--manifest"), description = Array("manifest file location (default: ${DEFAULT-VALUE})"))
   var manifest: String = "manifest.tsv"
 
   @Option(names = Array("-o", "--output-dir"), description = Array("downloads location (default: ${DEFAULT-VALUE})"))
-  var outputDir: String = "."
+  var outputDir: File = new File(".")
 
   override def run(): Unit = {
 
@@ -44,6 +45,10 @@ class Download(userConfig: UserConfig,
 
       printIntroduction()
 
+      if (!outputDir.exists() && !outputDir.mkdirs()) {
+        throw new IllegalStateException("Failed to access the output directory: " + outputDir.getAbsolutePath)
+      }
+
       val padding = appConfig.getInt("padding")
 
       val manifestFile: File = new CommandBlock[File]("Checking manifest file", successEmoji, padding) {
@@ -58,20 +63,15 @@ class Download(userConfig: UserConfig,
         }
       }.execute()
 
-      var links: Array[String] = new CommandBlock[Array[String]]("Retrieve Ferload download link(s)", successEmoji, padding) {
-        override def run(): Array[String] = {
-          ferload.getLinks(token, manifestFile)
+      val links: Map[String, String] = new CommandBlock[Map[String, String]]("Retrieve Ferload download link(s)", successEmoji, padding) {
+        override def run(): Map[String, String] = {
+          ferload.getDownloadLinks(token, manifestFile)
         }
       }.execute()
 
+      val files = s3.download(outputDir, links)
 
-      val download: File = new CommandBlock[File]("Perform download", successEmoji, padding) {
-        override def run(): File = {
-          new File("download.zip")
-        }
-      }.execute()
-
-      println(s"The downloaded file is available here: ${download.getAbsolutePath}")
+      println(s"Total downloaded files: ${files.size} located here: ${outputDir.getAbsolutePath}")
       println()
     }
   }

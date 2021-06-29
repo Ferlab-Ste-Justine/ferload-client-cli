@@ -1,6 +1,6 @@
 package ca.ferlab.ferload.client.commands
 
-import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak}
+import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak, IS3}
 import ca.ferlab.ferload.client.configurations._
 import com.typesafe.config.{Config, ConfigFactory}
 import org.json.JSONObject
@@ -38,7 +38,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   }
 
   test("run configure first") {
-    new Download(mockUserConfig, appTestConfig, mockCommandLineInf, null, null).run()
+    new Download(mockUserConfig, appTestConfig, mockCommandLineInf, null, null, null).run()
     assert(mockUserConfig.get(Username).equals("foo")) // at least one value is set
   }
 
@@ -55,16 +55,22 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
     }
 
     val mockFerload: IFerload = new IFerload {
-      override def getLinks(token: String, manifest: File): Array[String] = {
+      override def getDownloadLinks(token: String, manifest: File): Map[String, String] = {
         assert(token.equals("token"))
         assert(manifest.getName.equals("manifest.tsv"))
-        Array("link1", "link2", "link3")
+        Map("f1" -> "link1", "f2" -> "link2", "f2" -> "link2")
       }
 
       override def getConfig: JSONObject = ???
     }
 
-    new Download(mockUserConfig, appTestConfig, null, mockKeycloakInf, mockFerload).run()
+    val mockS3: IS3 = new IS3 {
+      override def download(outputDir: File, links: Map[String, String]): Array[File] = {
+        Array(new File("f1"), new File("f2"), new File("f3"))
+      }
+    }
+
+    new Download(mockUserConfig, appTestConfig, null, mockKeycloakInf, mockFerload, mockS3).run()
   }
 
 }
