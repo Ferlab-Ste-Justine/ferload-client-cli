@@ -20,7 +20,7 @@ class CommandFactory(userConfig: UserConfig,
       } else if (isClassCommand(clazz, classOf[Download])) {
         new Download(userConfig, appConfig, commandLineInf, keycloakInf, ferloadInf, s3Inf).asInstanceOf[K]
       } else {
-        throw new IllegalStateException("Unknown command: " + clazz.getName)
+        throw new IllegalStateException(s"Unknown command: ${clazz.getName}")
       }
     } catch {
       case _: Throwable => CommandLine.defaultFactory.create(clazz); // fallback if missing

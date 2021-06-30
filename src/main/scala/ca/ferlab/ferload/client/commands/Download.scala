@@ -77,13 +77,14 @@ class Download(userConfig: UserConfig,
   }
 
   private def getManifestFile: File = {
+    val manifestHeader = appConfig.getString("manifest-header")
     scala.Option(manifest)
       .filter(_.exists())
       .orElse(throw new IllegalStateException("Can't found manifest file at location: " + manifest.getAbsolutePath))
       .filter(f => {
         val source = Source.fromFile(f) // first line is the TSV header, check if valid
-        try source.getLines().next().trim.equals("file_id") finally source.close()
-      }).orElse(throw new IllegalStateException(s"Invalid manifest file, can't find column: ${appConfig.getString("manifest-header")}"))
+        try source.getLines().next().trim.equals(manifestHeader) finally source.close()
+      }).orElse(throw new IllegalStateException(s"Invalid manifest file, can't find column: $manifestHeader"))
       .get
   }
 

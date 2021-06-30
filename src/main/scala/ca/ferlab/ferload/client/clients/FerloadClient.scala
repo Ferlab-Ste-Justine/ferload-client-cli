@@ -37,7 +37,7 @@ class FerloadClient(userConfig: UserConfig) extends IFerload {
     val (body, status) = executeHttpRequest(httpRequest)
     status match {
       case 200 => toMap(body)
-      case 403 => throw new IllegalStateException(formatExceptionMessage("No enough access rights to download the following files: ", status, body))
+      case 403 => throw new IllegalStateException(formatExceptionMessage("No enough access rights to download the following files", status, body))
       case _ => throw new IllegalStateException(formatExceptionMessage("Failed to retrieve download link(s)", status, body))
     }
   }
@@ -47,23 +47,23 @@ class FerloadClient(userConfig: UserConfig) extends IFerload {
     val httpRequest = new HttpGet(requestUrl)
     val (body, status) = executeHttpRequest(httpRequest)
     if (status != 200) throw new IllegalStateException(formatExceptionMessage("Failed to retrieve Ferload config", status, body))
-    new JSONObject(body)
+    body.map(new JSONObject(_)).get // throw exception if null, that's ok
   }
 
-  private def executeHttpRequest(request: HttpRequestBase): (String, Int) = {
+  private def executeHttpRequest(request: HttpRequestBase): (Option[String], Int) = {
     val response: HttpResponse = http.execute(request)
-    val body = Option(response.getEntity).map(e => EntityUtils.toString(e, charset)).orNull
+    val body = Option(response.getEntity).map(e => EntityUtils.toString(e, charset))
     // always properly close
     EntityUtils.consumeQuietly(response.getEntity)
     (body, response.getStatusLine.getStatusCode)
   }
 
-  private def formatExceptionMessage(message: String, status: Int, reason: String) = {
-    s"$message, code: $status, message:\n$reason"
+  private def formatExceptionMessage(message: String, status: Int, body: Option[String]) = {
+    s"$message, code: $status, message:\n${body.getOrElse("")}"
   }
 
-  private def toMap(body: String): Map[String, String] = {
-    new JSONObject(body).toMap.asScala.map(entry => (entry._1, entry._2.toString)).toMap
+  private def toMap(body: Option[String]): Map[String, String] = {
+    body.map(new JSONObject(_).toMap.asScala.map({ case (key, value) => (key, value.toString) }).toMap).getOrElse(Map())
   }
 
 }

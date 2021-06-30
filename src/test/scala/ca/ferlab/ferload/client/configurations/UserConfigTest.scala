@@ -28,18 +28,19 @@ class UserConfigTest extends AnyFunSuite with BeforeAndAfter {
   }
 
   test("save") {
-    assert(getCurrentSavedValue(Username) == null)
+    assert(getCurrentSavedValue(Username).isEmpty)
     userConfig.set(Username, "foo")
     userConfig.save()
     assert(userConfig.get(Username).equals("foo"))
+    assert(getCurrentSavedValue(Username).get.equals("foo"))
   }
 
-  def getCurrentSavedValue(userConfigName: UserConfigName): String = {
+  def getCurrentSavedValue(userConfigName: UserConfigName): Option[String] = {
     val props = new Properties()
     val fis = new FileInputStream(path)
     props.load(fis)
     fis.close()
-    Option(props.get(userConfigName.name)).map(_.toString).orNull
+    Option(props.get(userConfigName.name)).map(_.toString)
   }
 
 }
