@@ -32,7 +32,7 @@ object Main {
       new ConsoleCommandLine,
       new KeycloakClient(userConfig),
       new FerloadClient(userConfig),
-      new S3Client)
+      new S3Client(appConfig.getInt("download-files-pool")))
 
     val commandLine = new CommandLine(new Main, commandFactory)
     if (args.nonEmpty) {
