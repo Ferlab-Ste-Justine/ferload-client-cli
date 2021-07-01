@@ -24,13 +24,13 @@ Lot of JAVA Web frameworks already provide support (compatible code / maven plug
 - Avoid reflection or provide config (ex: picocli)
 - Not 100% compatible with all libraries (ex: keycloak / AWS v1) improve its compatibility every day. Sometimes it's the libraries that need to be changed not GraalVM
 - Generated binary is massive (xxMB) => size can be reduced https://upx.github.io/
-- Generation of the native-image cost time and memory => github actions for the win
+- Generation of the native-image cost time and memory => better use github actions
 
 # Personal experience
 - Building the native command required some digging graalvm/libs docs / options ... Changes your code adding default constructors, remove some private members, reflection omg no ... it's another layer of work
-- Your JAR may work perfectly but the native image will failed at runtime for some weird (fucking) reasons => google pain ....
+- Your JAR may work perfectly but the native image will failed at runtime for some weird reasons => google pain ....
 - Need to test every use cases of the app
-- Provide a fallback that create an executable binary that use the JVM, can be useful to provide native binary without pain
+- Provide a fallback mechanism that will still create a native file with the JAR embedded inside and required a JVM to start. Could be an appropriate solution in some cases
 
 # Demo with ferload-client-cli
 Build clean JAR and execute it
@@ -55,8 +55,6 @@ native-image --enable-http --enable-https --no-fallback --allow-incomplete-class
 **--no-fallback** don't allow fallback native creation (binary that contains the JAR and call the JVM installed) --force-fallback can be used to always build this kind of binary
 
 **--allow-incomplete-classpath** allow un-resolved type at build-time, really common when the JAR dependencies tree is big but you only use part of it
-
-**--report-unsupported-elements-at-runtime** ignore possible missing fields / methods at build time it's good and bad, sometimes the build will failed for a feature your app don't at runtime
 
 **-H:IncludeResources=application.conf** all the src/main/resources you want, it's a regex
 
