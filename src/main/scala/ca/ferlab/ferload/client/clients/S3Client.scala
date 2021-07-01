@@ -10,13 +10,11 @@ import java.util.concurrent.Executors
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutorService, Future}
 
-class S3Client(appConfig: Config) extends HttpClient with IS3 {
+class S3Client(appConfig: Config) extends BaseHttpClient with IS3 {
 
   private implicit val executorContext: ExecutionContextExecutorService =
     ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(appConfig.getInt("download-files-pool")))
   sys.addShutdownHook(executorContext.shutdown())
-
-  private val packageEmoji = new String(Character.toChars(0x1F4E6))
 
   override def download(outputDir: File, links: Map[String, String]): Set[File] = {
     val downloads = Future.traverse(links.keySet)(fileName => {
@@ -33,7 +31,6 @@ class S3Client(appConfig: Config) extends HttpClient with IS3 {
     val response: HttpResponse = http.execute(request)
     val consumer = new S3ChunkConsumer(file, response, appConfig.getInt("download-files-buffer"))
     consumer.waitForCompletion()
-    println(s"$fileName ... $packageEmoji")
     file
   }
 }

@@ -7,7 +7,7 @@ import org.apache.http.client.methods.HttpPost
 import org.apache.http.message.BasicNameValuePair
 import org.json.JSONObject
 
-class KeycloakClient(config: UserConfig) extends HttpClient with IKeycloak {
+class KeycloakClient(config: UserConfig) extends BaseHttpClient with IKeycloak {
 
   lazy val url: String = config.get(KeycloakUrl)
   lazy val realm: String = config.get(KeycloakRealm)

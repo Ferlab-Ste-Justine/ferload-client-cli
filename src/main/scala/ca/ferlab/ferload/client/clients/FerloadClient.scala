@@ -11,7 +11,7 @@ import org.json.JSONObject
 import java.io.File
 import scala.io.Source
 
-class FerloadClient(userConfig: UserConfig) extends HttpClient with IFerload {
+class FerloadClient(userConfig: UserConfig) extends BaseHttpClient with IFerload {
 
   // lazy because config may be not available
   lazy val url: String = userConfig.get(FerloadUrl)

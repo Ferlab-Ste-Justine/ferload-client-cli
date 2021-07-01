@@ -9,7 +9,7 @@ import org.json.JSONObject
 import scala.jdk.CollectionConverters.MapHasAsScala // scala 2.13
 // import scala.collection.JavaConverters._ // scala 2.12
 
-abstract class HttpClient {
+abstract class BaseHttpClient {
 
   protected val httpBuilder: HttpClientBuilder = HttpClientBuilder.create()
   protected val http: CloseableHttpClient = httpBuilder.build()
