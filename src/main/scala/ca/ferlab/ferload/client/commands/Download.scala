@@ -71,6 +71,7 @@ class Download(userConfig: UserConfig,
 
       val files = s3.download(outputDir, links)
       println()
+      println()
 
       println(s"Total downloaded files: ${files.size} located here: ${outputDir.getAbsolutePath}")
       println()

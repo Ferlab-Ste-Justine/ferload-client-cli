@@ -14,7 +14,6 @@ libraryDependencies += "org.apache.httpcomponents" % "httpclient" % "4.5.13"
 libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.12.0"
 libraryDependencies += "org.json" % "json" % "20210307"
 libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.12.14"
-libraryDependencies += "me.tongfei" % "progressbar" % "0.8.1"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.7" % "test"
 
 // import sbtassembly.AssemblyPlugin.defaultUniversalScript
