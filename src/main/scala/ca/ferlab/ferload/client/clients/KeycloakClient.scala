@@ -25,7 +25,7 @@ class KeycloakClient(config: UserConfig) extends BaseHttpClient with IKeycloak {
     val (body, status) = executeHttpRequest(request)
     val token = status match {
       case 200 => body.map(new JSONObject(_)).get.getString("access_token")
-      case _ => throw new IllegalStateException(formatExceptionMessage("Failed to retrieve download link(s)", status, body))
+      case _ => throw new IllegalStateException(formatExceptionMessage("Failed to get user credentials", status, body))
     }
     token
   }
