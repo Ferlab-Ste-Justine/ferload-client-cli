@@ -13,6 +13,10 @@ class CommandFactory(userConfig: UserConfig,
                      keycloakInf: IKeycloak,
                      ferloadInf: IFerload,
                      s3Inf: IS3) extends IFactory {
+
+  // required for PicoCLI reflection tools GraalVM
+  def this() = this(null, null, null, null, null, null)
+
   override def create[K](clazz: Class[K]): K = {
     try {
       if (isClassCommand(clazz, classOf[Configure])) {

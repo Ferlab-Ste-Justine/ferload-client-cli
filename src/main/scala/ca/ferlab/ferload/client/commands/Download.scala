@@ -69,6 +69,8 @@ class Download(userConfig: UserConfig,
         }
       }.execute()
 
+      println("Download(s) in progress ...")
+      println()
       val files = s3.download(outputDir, links)
       println()
 

@@ -6,7 +6,7 @@ import picocli.CommandLine.Spec
 
 class BaseCommand(appConfig: Config) {
   @Spec
-  protected val spec: CommandSpec = null
+  val spec: CommandSpec = null // can't be private GraalVM
 
   protected val successEmoji = new String(Character.toChars(0x2705))
 

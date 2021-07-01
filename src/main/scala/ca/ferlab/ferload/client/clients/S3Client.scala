@@ -1,25 +1,22 @@
 package ca.ferlab.ferload.client.clients
 
 import ca.ferlab.ferload.client.clients.inf.IS3
-import com.amazonaws.regions.Regions
-import com.amazonaws.services.s3.AmazonS3ClientBuilder
-import com.amazonaws.services.s3.model.PresignedUrlDownloadRequest
-import com.amazonaws.services.s3.transfer.TransferManagerBuilder
+import com.typesafe.config.Config
+import org.apache.http.HttpResponse
+import org.apache.http.client.methods.HttpGet
 
-import java.io.File
-import java.net.URL
+import java.io._
 import java.util.concurrent.Executors
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutorService, Future}
 
-class S3Client(nThreads: Int = 1) extends IS3 {
+class S3Client(appConfig: Config) extends HttpClient with IS3 {
 
   private implicit val executorContext: ExecutionContextExecutorService =
-    ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(nThreads))
+    ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(appConfig.getInt("download-files-pool")))
   sys.addShutdownHook(executorContext.shutdown())
 
-  private val awsClient = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1).build()
-  private val trx = TransferManagerBuilder.standard().withS3Client(awsClient).build()
+  private val packageEmoji = new String(Character.toChars(0x1F4E6))
 
   override def download(outputDir: File, links: Map[String, String]): Set[File] = {
     val downloads = Future.traverse(links.keySet)(fileName => {
@@ -32,12 +29,11 @@ class S3Client(nThreads: Int = 1) extends IS3 {
   private def download(outputDir: File, fileName: String, link: String)
                       (implicit executorContext: ExecutionContextExecutorService): File = {
     val file = new File(outputDir.getAbsolutePath + File.separator + fileName)
-    val request = new PresignedUrlDownloadRequest(new URL(link))
-    val download = trx.download(request, file)
-    val progressListener = new S3TransferProgressListener(fileName, download)
-    download.addProgressListener(progressListener)
-    download.waitForCompletion()
-    progressListener.stop()
+    val request = new HttpGet(link)
+    val response: HttpResponse = http.execute(request)
+    val consumer = new S3ChunkConsumer(file, response, appConfig.getInt("download-files-buffer"))
+    consumer.waitForCompletion()
+    println(s"$fileName ... $packageEmoji")
     file
   }
 }
