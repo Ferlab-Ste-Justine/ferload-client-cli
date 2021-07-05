@@ -2,6 +2,8 @@ name := "ferload-client"
 organization := "ca.ferlab"
 version := "0.1"
 
+javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
+
 scalaVersion := "2.13.6"
 
 // some TUs write in a common config tmp file

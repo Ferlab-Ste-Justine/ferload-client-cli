@@ -20,7 +20,7 @@ object ConsoleProgressBar {
 
       val percent = (value * 100.0) / total
 
-      // this condition avoid to much print in the console
+      // this condition avoid too much print in the console
       if (percent % displayOnlyIfMultipleOf == 0) {
 
         if (StringUtils.isNotBlank(lastProgressBar) && !name.equals(lastProgressBar)) {

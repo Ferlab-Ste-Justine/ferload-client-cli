@@ -16,6 +16,8 @@ class S3Client(appConfig: Config) extends BaseHttpClient with IS3 {
     ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(appConfig.getInt("download-files-pool")))
   sys.addShutdownHook(executorContext.shutdown())
 
+  private val bufferSize = appConfig.getInt("download-files-buffer")
+
   override def download(outputDir: File, links: Map[String, String]): Set[File] = {
     val downloads = Future.traverse(links.keySet)(fileName => {
       val link = links(fileName)
@@ -29,7 +31,7 @@ class S3Client(appConfig: Config) extends BaseHttpClient with IS3 {
     val file = new File(outputDir.getAbsolutePath + File.separator + fileName)
     val request = new HttpGet(link)
     val response: HttpResponse = http.execute(request)
-    val consumer = new S3ChunkConsumer(file, response, appConfig.getInt("download-files-buffer"))
+    val consumer = new S3ChunkConsumer(file, response, bufferSize)
     consumer.waitForCompletion()
     file
   }
