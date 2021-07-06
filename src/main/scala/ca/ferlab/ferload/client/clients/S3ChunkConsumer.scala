@@ -5,7 +5,7 @@ import org.apache.http.util.EntityUtils
 import org.apache.http.{HttpHeaders, HttpResponse}
 
 import java.io.{File, FileInputStream, FileOutputStream}
-import scala.util.Using
+import scala.util.{Failure, Success, Using}
 
 class S3ChunkConsumer(file: File, response: HttpResponse, bufferSize: Int) {
 
@@ -14,14 +14,20 @@ class S3ChunkConsumer(file: File, response: HttpResponse, bufferSize: Int) {
   private val fileName = file.getName
 
   private def verifyFile(): Unit = {
-    // apache DigestUtils better at memory consumption than any others tested solutions
-    Using.Manager { use =>
-      val fis = use(new FileInputStream(file))
-      val digest = DigestUtils.md5Hex(fis) // always MD5
-      if (!digest.equals(checksum)) throw new IllegalStateException(s"Invalid checksum for file $file expected: $checksum  but computed $digest)")
+    if (!checksum.contains("-")) { // TODO implement checksum with ETag multi-parts
+      // apache DigestUtils better at memory consumption than any others tested solutions
+      Using.Manager { use =>
+        val fis = use(new FileInputStream(file))
+        val digest = DigestUtils.md5Hex(fis) // always MD5
+        if (!digest.equals(checksum)) throw new IllegalStateException(s"Invalid checksum for file $file expected: $checksum  but computed $digest)")
+      } match {
+        case Success(_) =>
+        case Failure(e) => throw e
+      }
+    } else {
+      val fileLength = file.length()
+      if (fileLength != totalSize) throw new IllegalStateException(s"Invalid file length $file expected: $totalSize  but computed $fileLength)")
     }
-    val fileLength = file.length()
-    if (fileLength != totalSize) throw new IllegalStateException(s"Invalid file length $file expected: $totalSize  but computed $fileLength)")
   }
 
   def waitForCompletion(): Unit = {
@@ -40,9 +46,12 @@ class S3ChunkConsumer(file: File, response: HttpResponse, bufferSize: Int) {
             totalReceived += currentReceived
             ConsoleProgressBar.displayProgressBar(fileName, totalReceived, totalSize)
         })
-
+      ConsoleProgressBar.displayProgressBar(fileName, totalSize, totalSize)
       EntityUtils.consumeQuietly(response.getEntity)
       verifyFile()
+    } match {
+      case Success(_) =>
+      case Failure(e) => throw e
     }
   }
 }
