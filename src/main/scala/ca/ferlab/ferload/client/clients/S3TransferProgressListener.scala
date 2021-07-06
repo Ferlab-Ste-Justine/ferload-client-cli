@@ -18,7 +18,7 @@ class S3TransferProgressListener(fileName: String, transfer: Transfer) extends P
     progressEvent.getEventType match {
       case ProgressEventType.RESPONSE_BYTE_TRANSFER_EVENT => {
         totalReceived += progressEvent.getBytesTransferred
-        ConsoleProgressBar.displayProgressBar(fileName, totalReceived, totalBytes, displayOnlyIfMultipleOf = 1)
+        ConsoleProgressBar.displayProgressBar(fileName, totalReceived, totalBytes)
       }
       case _ =>
     }
