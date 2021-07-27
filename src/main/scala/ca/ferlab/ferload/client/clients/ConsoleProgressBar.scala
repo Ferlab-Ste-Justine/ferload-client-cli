@@ -4,7 +4,10 @@ import org.apache.commons.lang3.StringUtils
 
 object ConsoleProgressBar {
 
-  private val format = "\r%s [%s%s] %6d / %6d MB (%3d%%) "
+  private val oneKB = 1024
+  private val oneMB = oneKB * 1024
+  private val formatSize = "%6d / %6d %s"
+  private val formatBar = "\r%s [%s%s] %s (%3d%%) "
   private val packageEmoji = new String(Character.toChars(0x1F4E6))
 
   // remember the last progressbar name to detect when to print line returns
@@ -12,7 +15,15 @@ object ConsoleProgressBar {
   private var lastPercents: Map[String, Double] = Map()
 
   // the files we are working on are worth at least MB
-  private def toMB(value: Long): Int = (value / 1024 / 1024).toInt
+  private def formatSize(value: Long, total: Long): String = {
+    if (total < oneKB) {
+      String.format(formatSize, value.toInt, total, "B ")
+    } else if (total < oneMB) {
+      String.format(formatSize, (value / oneKB).toInt, (total / oneKB).toInt, "KB")
+    } else {
+      String.format(formatSize, (value / oneMB).toInt, (total / oneMB).toInt, "MB")
+    }
+  }
 
   def displayProgressBar(name: String, value: Long, total: Long, size: Int = 50, displayForEveryPercent: Int = 10): Unit = {
 
@@ -34,7 +45,7 @@ object ConsoleProgressBar {
         val done = "#" * ((percent * size) / 100).toInt
         val remaining = " " * (size - done.length)
 
-        printf(format, name, done, remaining, toMB(value), toMB(total), percent.toInt)
+        printf(formatBar, name, done, remaining, formatSize(value, total), percent.toInt)
 
         if (value == total) {
           print(packageEmoji)
