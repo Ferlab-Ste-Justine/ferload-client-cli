@@ -4,6 +4,7 @@ Official Ferload Client command line interface for files download.
 
 |technology|link|details|
 |-|-|-|
+|JAVA|https://openjdk.java.net/install|8|
 |scala|https://www.scala-lang.org|2.x|
 |picocli|https://picocli.info/|command-line library|
 |config|https://github.com/lightbend/config|to manage internal configuration|
