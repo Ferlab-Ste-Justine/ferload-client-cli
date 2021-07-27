@@ -45,7 +45,7 @@ class ConfigureTest extends AnyFunSuite with BeforeAndAfter {
       new JSONObject().put("keycloak", new JSONObject(config))
     }
 
-    override def getDownloadLinks(token: String, manifest: File): Map[String, String] = ???
+    override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = ???
   }
 
   before {

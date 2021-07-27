@@ -4,12 +4,13 @@ import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak, 
 import ca.ferlab.ferload.client.commands.factory.{BaseCommand, CommandBlock}
 import ca.ferlab.ferload.client.configurations._
 import com.typesafe.config.Config
+import org.apache.commons.csv.CSVFormat
 import org.apache.commons.lang3.StringUtils
 import picocli.CommandLine
 import picocli.CommandLine.{Command, Option}
 
-import java.io.File
-import scala.io.Source
+import java.io.{File, FileReader}
+import scala.util.{Failure, Success, Using}
 
 @Command(name = "download", mixinStandardHelpOptions = true, description = Array("Download files based on provided manifest."),
   version = Array("0.1"))
@@ -51,9 +52,9 @@ class Download(userConfig: UserConfig,
 
       val padding = appConfig.getInt("padding")
 
-      val manifestFile: File = new CommandBlock[File]("Checking manifest file", successEmoji, padding) {
-        override def run(): File = {
-          getManifestFile
+      val manifestContent: String = new CommandBlock[String]("Checking manifest file", successEmoji, padding) {
+        override def run(): String = {
+          extractManifestContent
         }
       }.execute()
 
@@ -65,7 +66,7 @@ class Download(userConfig: UserConfig,
 
       val links: Map[String, String] = new CommandBlock[Map[String, String]]("Retrieve Ferload download link(s)", successEmoji, padding) {
         override def run(): Map[String, String] = {
-          ferload.getDownloadLinks(token, manifestFile)
+          ferload.getDownloadLinks(token, manifestContent)
         }
       }.execute()
 
@@ -78,16 +79,42 @@ class Download(userConfig: UserConfig,
     }
   }
 
-  private def getManifestFile: File = {
+  private def extractManifestContent: String = {
     val manifestHeader = appConfig.getString("manifest-header")
-    scala.Option(manifest)
-      .filter(_.exists())
-      .orElse(throw new IllegalStateException("Can't found manifest file at location: " + manifest.getAbsolutePath))
-      .filter(f => {
-        val source = Source.fromFile(f) // first line is the TSV header, check if valid
-        try source.getLines().next().trim.equals(manifestHeader) finally source.close()
-      }).orElse(throw new IllegalStateException(s"Invalid manifest file, can't find column: $manifestHeader"))
-      .get
+    val manifestSeparator = appConfig.getString("manifest-separator")
+
+    if (!manifest.exists()) {
+      throw new IllegalStateException("Manifest file not found at location: " + manifest.getAbsolutePath)
+    }
+
+    Using(new FileReader(manifest)) { reader =>
+      val parser = CSVFormat.DEFAULT
+        .withRecordSeparator(manifestSeparator)
+        .withIgnoreEmptyLines()
+        .withTrim()
+        .withFirstRecordAsHeader()
+        .parse(reader)
+      val builder = new StringBuilder
+      val fileIdColumnIndex = parser.getHeaderMap.getOrDefault(manifestHeader, -1)
+
+      if (fileIdColumnIndex == -1) {
+        throw new IllegalStateException("Missing column: " + manifestHeader)
+      }
+
+      parser.getRecords.stream().forEach(record => {
+        builder.append(s"${record.get(fileIdColumnIndex)}\n")
+      })
+
+      if (builder.isEmpty) {
+        throw new IllegalStateException("Empty content")
+      }
+
+      builder.toString()
+
+    } match {
+      case Success(value) => value
+      case Failure(e) => throw new IllegalStateException(s"Invalid manifest file: " + e.getMessage, e)
+    }
   }
 
 }

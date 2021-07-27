@@ -15,6 +15,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   val appTestConfig: Config = ConfigFactory.load.getObject("ferload-client").toConfig
   val path: String = "/tmp/.ferload-client.properties"
   val mockUserConfig = new UserConfig(path)
+  val manifestEmptyFile: String = this.getClass.getClassLoader.getResource("manifest-empty.tsv").getFile
   val manifestValidFile: String = this.getClass.getClassLoader.getResource("manifest-valid.tsv").getFile
   val manifestInvalidFile: String = this.getClass.getClassLoader.getResource("manifest-invalid.tsv").getFile
   val mockCommandLineInf: ICommandLine = new ICommandLine {
@@ -63,10 +64,14 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
     assertCommandException(cmd, "Failed to access the output directory", "-o", "/mount")
   }
 
-  test("manifest invalid") {
-    val manifestFile: String = this.getClass.getClassLoader.getResource("manifest-invalid.tsv").getFile
+  test("manifest empty") {
     val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, null, null, null, null))
-    assertCommandException(cmd, "Invalid manifest file", "-m", manifestInvalidFile)
+    assertCommandException(cmd, "Empty content", "-m", manifestEmptyFile)
+  }
+
+  test("manifest invalid") {
+    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, null, null, null, null))
+    assertCommandException(cmd, "Missing column", "-m", manifestInvalidFile)
   }
 
   test("call keycloak / ferload") {
@@ -82,9 +87,8 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
     }
 
     val mockFerload: IFerload = new IFerload {
-      override def getDownloadLinks(token: String, manifest: File): Map[String, String] = {
+      override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = {
         assert(token.equals("token"))
-        assert(manifest.getName.equals("manifest-valid.tsv"))
         Map("f1" -> "link1", "f2" -> "link2", "f2" -> "link2")
       }
 

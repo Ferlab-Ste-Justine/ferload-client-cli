@@ -2,15 +2,12 @@ package ca.ferlab.ferload.client.clients
 
 import ca.ferlab.ferload.client.clients.inf.IFerload
 import ca.ferlab.ferload.client.configurations.{FerloadUrl, UserConfig}
-import org.apache.commons.lang3.StringUtils
 import org.apache.http.HttpHeaders
 import org.apache.http.client.methods.{HttpGet, HttpPost}
 import org.apache.http.entity.{ContentType, StringEntity}
 import org.json.JSONObject
 
-import java.io.File
 import java.net.URL
-import scala.io.Source
 
 class FerloadClient(userConfig: UserConfig) extends BaseHttpClient with IFerload {
 
@@ -18,11 +15,7 @@ class FerloadClient(userConfig: UserConfig) extends BaseHttpClient with IFerload
   lazy val url = new URL(userConfig.get(FerloadUrl))
   private val separator = "\n"
 
-  override def getDownloadLinks(token: String, manifest: File): Map[String, String] = {
-    val manifestSource = Source.fromFile(manifest)
-    // drop manifest header + properly close the source, send the manifest content as plain text in the POST
-    val manifestContent = try manifestSource.getLines().drop(1).filter(StringUtils.isNotBlank)
-      .mkString(separator) finally manifestSource.close()
+  override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = {
     val requestUrl = new URL(url, "/downloadLinks").toString
     val httpRequest = new HttpPost(requestUrl)
     httpRequest.addHeader(HttpHeaders.AUTHORIZATION, s"Bearer $token")

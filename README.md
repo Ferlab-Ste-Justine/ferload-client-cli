@@ -11,6 +11,7 @@ Official Ferload Client command line interface for files download.
 |keycloak|https://www.keycloak.org/documentation.html|JAVA API to access Keycloak|
 |AWS S3 v1|https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/examples-s3-transfermanager.html|Used for TransferManager mainly|
 |Apache HTTP client|https://hc.apache.org/httpcomponents-client-4.5.x|To perform HTTP calls|
+|Apache CSV|https://commons.apache.org/proper/commons-csv|Manipulate CSV files|
 |JSON-Java|https://github.com/stleary/JSON-java|Help working with JSON|
 
 # Commands
