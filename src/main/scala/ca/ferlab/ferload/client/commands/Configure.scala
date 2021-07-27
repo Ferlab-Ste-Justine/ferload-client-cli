@@ -10,7 +10,7 @@ import picocli.CommandLine.{Command, Option}
 
 import java.util.Optional
 
-@Command(name = "configure", mixinStandardHelpOptions = true, description = Array(" Help configure this tools."), version = Array("0.1"))
+@Command(name = "configure", mixinStandardHelpOptions = true, description = Array(" Help configure this tool."), version = Array("0.1"))
 class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommandLine, ferload: IFerload) extends BaseCommand(appConfig) with Runnable {
 
   @Option(names = Array("-f", "--ferload-url"), description = Array("Ferload url"))
