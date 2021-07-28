@@ -36,12 +36,39 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
       mock
     }
   }
+  val mockCommandLineInfAgreed: ICommandLine = new ICommandLine {
+    override def readLine(fmt: String): String = "yes"
+
+    override def readPassword(fmt: String): String = ???
+  }
+  val mockCommandLineInfNotAgreed: ICommandLine = new ICommandLine {
+    override def readLine(fmt: String): String = "no"
+
+    override def readPassword(fmt: String): String = ???
+  }
+
+  val mockKeycloakInf: IKeycloak = new IKeycloak {
+    override def getUserCredentials(username: String, password: String): String = {
+      assert(username.equals("foo"))
+      assert(password.equals("bar"))
+      "token"
+    }
+  }
+
+  val mockFerload: IFerload = new IFerload {
+    override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = {
+      assert(token.equals("token"))
+      Map("f1" -> "link1", "f2" -> "link2", "f2" -> "link2")
+    }
+
+    override def getConfig: JSONObject = ???
+  }
 
   before {
     mockUserConfig.clear()
     mockUserConfig.set(FerloadUrl, "foo")
     mockUserConfig.set(Username, "foo")
-    mockUserConfig.set(Password, "foo")
+    mockUserConfig.set(Password, "bar")
     mockUserConfig.set(KeycloakUrl, "foo")
     mockUserConfig.set(KeycloakRealm, "foo")
     mockUserConfig.set(KeycloakClientId, "foo")
@@ -75,35 +102,54 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   }
 
   test("call keycloak / ferload") {
-    mockUserConfig.set(Username, "foo")
-    mockUserConfig.set(Password, "bar")
-
-    val mockKeycloakInf: IKeycloak = new IKeycloak {
-      override def getUserCredentials(username: String, password: String): String = {
-        assert(username.equals("foo"))
-        assert(password.equals("bar"))
-        "token"
-      }
-    }
-
-    val mockFerload: IFerload = new IFerload {
-      override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = {
-        assert(token.equals("token"))
-        Map("f1" -> "link1", "f2" -> "link2", "f2" -> "link2")
-      }
-
-      override def getConfig: JSONObject = ???
-    }
 
     val mockS3: IS3 = new IS3 {
       override def download(outputDir: File, links: Map[String, String]): Set[File] = {
         assert(links.size == 2)
         Set(new File("f1"), new File("f2"))
       }
+
+      override def getTotalExpectedDownloadSize(links: Map[String, String]): Long = 0L
+
+      override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 1L
     }
 
-    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, null, mockKeycloakInf, mockFerload, mockS3))
+    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, mockCommandLineInfAgreed, mockKeycloakInf, mockFerload, mockS3))
     cmd.execute("-m", manifestValidFile)
+  }
+
+  test("did not agreed to download") {
+
+    val mockS3: IS3 = new IS3 {
+      override def download(outputDir: File, links: Map[String, String]): Set[File] = {
+        assert(links.size == 2)
+        Set(new File("f1"), new File("f2"))
+      }
+
+      override def getTotalExpectedDownloadSize(links: Map[String, String]): Long = 0L
+
+      override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 1L
+    }
+
+    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, mockCommandLineInfNotAgreed, mockKeycloakInf, mockFerload, mockS3))
+    cmd.execute("-m", manifestValidFile)
+  }
+
+  test("not enough disk space") {
+
+    val mockS3: IS3 = new IS3 {
+      override def download(outputDir: File, links: Map[String, String]): Set[File] = {
+        assert(links.size == 2)
+        Set(new File("f1"), new File("f2"))
+      }
+
+      override def getTotalExpectedDownloadSize(links: Map[String, String]): Long = 2L
+
+      override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 1L
+    }
+
+    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, mockCommandLineInfAgreed, mockKeycloakInf, mockFerload, mockS3))
+    assertCommandException(cmd, "Not enough disk space available", "-m", manifestValidFile)
   }
 
 }

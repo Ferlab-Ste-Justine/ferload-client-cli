@@ -5,6 +5,7 @@ import ca.ferlab.ferload.client.commands.factory.{BaseCommand, CommandBlock}
 import ca.ferlab.ferload.client.configurations._
 import com.typesafe.config.Config
 import org.apache.commons.csv.CSVFormat
+import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import picocli.CommandLine
 import picocli.CommandLine.{Command, Option}
@@ -70,12 +71,26 @@ class Download(userConfig: UserConfig,
         }
       }.execute()
 
-      val files = s3.download(outputDir, links)
-      println()
+      val totalExpectedDownloadSize = s3.getTotalExpectedDownloadSize(links)
+      val downloadAgreement = appConfig.getString("download-agreement")
+      val agreedToDownload = commandLine.readLine(s"The total average expected download size will be " +
+        s"${FileUtils.byteCountToDisplaySize(totalExpectedDownloadSize)} do you want to continue ? [$downloadAgreement]")
       println()
 
-      println(s"Total downloaded files: ${files.size} located here: ${outputDir.getAbsolutePath}")
-      println()
+      if (agreedToDownload.equals(downloadAgreement) || StringUtils.isBlank(agreedToDownload)) {
+
+        val usableSpace = s3.getTotalAvailableDiskSpaceAt(manifest)
+        if (usableSpace < totalExpectedDownloadSize) {
+          throw new IllegalStateException(s"Not enough disk space available $usableSpace < $totalExpectedDownloadSize")
+        }
+
+        val files = s3.download(outputDir, links)
+        println()
+        println()
+
+        println(s"Total downloaded files: ${files.size} located here: ${outputDir.getAbsolutePath}")
+        println()
+      }
     }
   }
 

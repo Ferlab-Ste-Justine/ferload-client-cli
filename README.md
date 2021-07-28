@@ -12,6 +12,7 @@ Official Ferload Client command line interface for files download.
 |AWS S3 v1|https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/examples-s3-transfermanager.html|Used for TransferManager mainly|
 |Apache HTTP client|https://hc.apache.org/httpcomponents-client-4.5.x|To perform HTTP calls|
 |Apache CSV|https://commons.apache.org/proper/commons-csv|Manipulate CSV files|
+|Apache IO|https://commons.apache.org/proper/commons-io|Files and IO utils|
 |JSON-Java|https://github.com/stleary/JSON-java|Help working with JSON|
 
 # Commands
@@ -105,6 +106,8 @@ Checking manifest file                             ✅
 Retrieve user credentials                          ✅
 
 Retrieve Ferload download link(s)                  ✅
+
+The total expected average download size will be 4 GB do you agree ? [yes]:
 
 FIL0000010 [##################################################]      0 /      0 MB (100%) 📦
 FIL0000002 [##################################################]    125 /    125 MB (100%) 📦
