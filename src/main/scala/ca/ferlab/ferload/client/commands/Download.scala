@@ -96,7 +96,7 @@ class Download(userConfig: UserConfig,
 
   private def extractManifestContent: String = {
     val manifestHeader = appConfig.getString("manifest-header")
-    val manifestSeparator = appConfig.getString("manifest-separator")
+    val manifestSeparator = appConfig.getString("manifest-separator").charAt(0)
 
     if (!manifest.exists()) {
       throw new IllegalStateException("Manifest file not found at location: " + manifest.getAbsolutePath)
@@ -104,7 +104,7 @@ class Download(userConfig: UserConfig,
 
     Using(new FileReader(manifest)) { reader =>
       val parser = CSVFormat.DEFAULT
-        .withRecordSeparator(manifestSeparator)
+        .withDelimiter(manifestSeparator)
         .withIgnoreEmptyLines()
         .withTrim()
         .withFirstRecordAsHeader()
