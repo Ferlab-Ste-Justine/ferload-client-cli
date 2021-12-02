@@ -1,0 +1,26 @@
+name: build and test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build_and_test:
+    
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: olafurpg/setup-scala@v11
+    - name: Compile
+      run: sbt compile
+    - name: Test
+      run: sbt -v -Dfile.encoding=UTF-8 +test
+    - name: Publish Test Report
+      uses: mikepenz/action-junit-report@v2
+      with:
+        report_paths: 'target/test-reports/TEST-*.xml'
+    - name: Build
+      run: sbt -v -Dfile.encoding=UTF-8 +universal:packageZipTarball
