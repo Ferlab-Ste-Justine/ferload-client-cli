@@ -2,18 +2,33 @@
 
 Official Ferload Client command line interface for files download.
 
-This tools requires JRE >= 8, you can verify the installed version using the following:
+This tool requires JRE >= 8, you can verify the installed version using the following:
 
 ```shell
 java -version
 ```
 
+# Installation
+
+- Go to the [releases](https://github.com/Ferlab-Ste-Justine/ferload-client-cli/releases) page
+- Download the last one (or a specific version)
+- In **Assets** click on the **ferload-client.jar** file
+
+*Note: your browser may ask to confirm the download*
+
 # User guide
 
-This tool provide several commands and by default will display usage if not specified:
+This tool provides several commands and by default will display usage if none specified:
 
 ```
-Usage: java -jar ferload-client.jar [-hV] [COMMAND]
+user@localhost:~$ java -jar ferload-client.jar
+
+```
+
+Should display:
+
+```
+Usage: ferload-client [-hV] [COMMAND]
 Official Ferload Client command line interface for files download.
   -h, --help      Show this help message and exit.
   -V, --version   Print version information and exit.
@@ -30,7 +45,7 @@ Will ask the user to enter step by step the required information needed to confi
 ### Usage
 
 ```
-Usage: java -jar ferload-client.jar configure [-hrV] [-f=<ferloadUrl>] [-p=<password>]
+Usage: ferload-client configure [-hrV] [-f=<ferloadUrl>] [-p=<password>]
                                 [-u=<username>]
  Help configure this tools.
   -f, --ferload-url=<ferloadUrl>
@@ -44,10 +59,12 @@ Usage: java -jar ferload-client.jar configure [-hrV] [-f=<ferloadUrl>] [-p=<pass
   -V, --version   Print version information and exit.
 ```
 
-All the params are optional if not provided user will access interactive prompts:
+All the params are optional if not provided user will access interactive prompts.
+
+### Example
 
 ```
-> ferload-client configure
+user@localhost:~$ java -jar ferload-client.jar configure
 
 Welcome to Ferload Client, this tools will download the files based
 on the provided manifest. For any questions or feedbacks please contact:
@@ -71,7 +88,7 @@ Configuration has been successfully updated ✅
 By providing a manifest file and an output folder the tool will start downloading the files. This step is done concurrently with a secured hash validation for file integrity.
 ### Usage
 ```
-Usage: java -jar ferload-client.jar download [-hV] [-m=<manifest>] [-o=<outputDir>]
+Usage: ferload-client download [-hV] [-m=<manifest>] [-o=<outputDir>]
 Download files based on provided manifest.
   -h, --help      Show this help message and exit.
   -m, --manifest=<manifest>
@@ -81,11 +98,11 @@ Download files based on provided manifest.
   -V, --version   Print version information and exit
 ```
 
-Manifest and output folder have default values. User can provide specific ones like bellow:
+Manifest and output folder have default values. User can provide specific ones if needed.
 
-Example of command:
+### Example
 ```
-Usage: java -jar ferload-client.jar download -m ./data/m1.tsv -o ./data
+user@localhost:~$ java -jar ferload-client.jar download -m ./data/m1.tsv -o ./data
 
 Welcome to Ferload Client, this tools will download the files based
 on the provided manifest. For any questions or feedbacks please contact:
@@ -176,3 +193,14 @@ No enough access rights to download the following files, code: 403, message:
 FIL0000004
 FIL0000001
 ```
+
+## Release
+
+The following command will release a new version of the tool:
+
+```
+git tag v?.?.?
+git push origin v?.?.?
+```
+
+*Note: don't use the Github release UI as it will be in conflict with the pipeline script.*
