@@ -2,25 +2,18 @@
 
 Official Ferload Client command line interface for files download.
 
-|technology|link|details|
-|-|-|-|
-|JAVA|https://openjdk.java.net/install|8|
-|scala|https://www.scala-lang.org|2.x|
-|picocli|https://picocli.info/|command-line library|
-|config|https://github.com/lightbend/config|to manage internal configuration|
-|keycloak|https://www.keycloak.org/documentation.html|JAVA API to access Keycloak|
-|AWS S3 v1|https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/examples-s3-transfermanager.html|Used for TransferManager mainly|
-|Apache HTTP client|https://hc.apache.org/httpcomponents-client-4.5.x|To perform HTTP calls|
-|Apache CSV|https://commons.apache.org/proper/commons-csv|Manipulate CSV files|
-|Apache IO|https://commons.apache.org/proper/commons-io|Files and IO utils|
-|JSON-Java|https://github.com/stleary/JSON-java|Help working with JSON|
+This tools requires JRE >= 8, you can verify the installed version using the following:
 
-# Commands
+```shell
+java -version
+```
+
+# User guide
 
 This tool provide several commands and by default will display usage if not specified:
 
 ```
-Usage: ferload-client [-hV] [COMMAND]
+Usage: java -jar ferload-client.jar [-hV] [COMMAND]
 Official Ferload Client command line interface for files download.
   -h, --help      Show this help message and exit.
   -V, --version   Print version information and exit.
@@ -37,7 +30,7 @@ Will ask the user to enter step by step the required information needed to confi
 ### Usage
 
 ```
-Usage: ferload-client configure [-hrV] [-f=<ferloadUrl>] [-p=<password>]
+Usage: java -jar ferload-client.jar configure [-hrV] [-f=<ferloadUrl>] [-p=<password>]
                                 [-u=<username>]
  Help configure this tools.
   -f, --ferload-url=<ferloadUrl>
@@ -74,14 +67,11 @@ Configuration has been successfully updated ✅
 
 *Note: configure will display current existing configuration values, user doesn't have to re-write them again, just press 'enter' if the value didn't changed*
 
-### Sequence diagram
-![configure sequence](./docs/ferload-client-configure.png)
-
 ## Download
 By providing a manifest file and an output folder the tool will start downloading the files. This step is done concurrently with a secured hash validation for file integrity.
 ### Usage
 ```
-Usage: ferload-client download [-hV] [-m=<manifest>] [-o=<outputDir>]
+Usage: java -jar ferload-client.jar download [-hV] [-m=<manifest>] [-o=<outputDir>]
 Download files based on provided manifest.
   -h, --help      Show this help message and exit.
   -m, --manifest=<manifest>
@@ -95,7 +85,7 @@ Manifest and output folder have default values. User can provide specific ones l
 
 Example of command:
 ```
-> ferload-client download -m ./data/m1.tsv -o ./data
+Usage: java -jar ferload-client.jar download -m ./data/m1.tsv -o ./data
 
 Welcome to Ferload Client, this tools will download the files based
 on the provided manifest. For any questions or feedbacks please contact:
@@ -125,12 +115,11 @@ FIL0000006 [##################################################]    150 /    150 
 Total downloaded files: 12 located here: ./data
 
 ```
-### Sequence diagram
-![configure sequence](./docs/ferload-client-download.png)
+# Technical
 
 ## Manifest file
 
-This file is downloaded by the user from the portal.
+This file is downloaded by the user from the portal or received by email.
 
 Example of content:
 
@@ -149,7 +138,29 @@ FIL0000010
 FIL0000011
 FIL0000012
 ```
-# Access rights 
+## Sequence diagrams
+
+### Configure
+![configure sequence](./docs/ferload-client-configure.png)
+
+### Download
+![configure sequence](./docs/ferload-client-download.png)
+## Dependencies
+
+|technology|link|details|
+|-|-|-|
+|JAVA|https://openjdk.java.net/install|8|
+|scala|https://www.scala-lang.org|2.x|
+|picocli|https://picocli.info/|command-line library|
+|config|https://github.com/lightbend/config|to manage internal configuration|
+|keycloak|https://www.keycloak.org/documentation.html|JAVA API to access Keycloak|
+|AWS S3 v1|https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/examples-s3-transfermanager.html|Used for TransferManager mainly|
+|Apache HTTP client|https://hc.apache.org/httpcomponents-client-4.5.x|To perform HTTP calls|
+|Apache CSV|https://commons.apache.org/proper/commons-csv|Manipulate CSV files|
+|Apache IO|https://commons.apache.org/proper/commons-io|Files and IO utils|
+|JSON-Java|https://github.com/stleary/JSON-java|Help working with JSON|
+
+## Access rights 
 
 The following sequence diagram explains how the access rights are granted for each user. 
 

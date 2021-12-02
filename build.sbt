@@ -1,3 +1,4 @@
+
 name := "ferload-client"
 organization := "ca.ferlab"
 version := "0.1"
@@ -25,7 +26,7 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.7" % "test"
 
 assembly / mainClass := Some("ca.ferlab.ferload.client.Main")
 assembly / test := {}
-assembly / assemblyJarName := s"${name.value}-${version.value}.jar"
+assembly / assemblyJarName := s"${name.value}.jar"
 // assembly / assemblyOption := (assembly / assemblyOption).value.copy(prependShellScript = Some(defaultUniversalScript(shebang = false)))
 // assembly / assemblyOption := (assembly / assemblyOption).value.copy(prependShellScript = Some(defaultShellScript))
 
