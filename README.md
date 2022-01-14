@@ -45,14 +45,11 @@ Will ask the user to enter step by step the required information needed to confi
 ### Usage
 
 ```
-Usage: ferload-client configure [-hrV] [-f=<ferloadUrl>] [-p=<password>]
-                                [-u=<username>]
- Help configure this tools.
+Usage: ferload-client configure [-hrV] [-f=<ferloadUrl>] [-u=<username>]
+ Help configure this tool.
   -f, --ferload-url=<ferloadUrl>
                   Ferload url
   -h, --help      Show this help message and exit.
-  -p, --password=<password>
-                  password
   -r, --reset     Reset configuration (default: false)
   -u, --username=<username>
                   username
@@ -74,7 +71,6 @@ Press 'enter' to keep the existing configuration [current].
 
 Ferload url                 [http://localhost:9001]: 
 username                                    [user1]: 
-password                                   [hidden]: 
 
 Retrieve Ferload configuration ✅
 
@@ -89,13 +85,16 @@ By providing a manifest file and an output folder the tool will start downloadin
 ### Usage
 ```
 Usage: ferload-client download [-hV] [-m=<manifest>] [-o=<outputDir>]
+                               [-p=<password>]
 Download files based on provided manifest.
   -h, --help      Show this help message and exit.
   -m, --manifest=<manifest>
                   manifest file location (default: manifest.tsv)
   -o, --output-dir=<outputDir>
                   downloads location (default: .)
-  -V, --version   Print version information and exit
+  -p, --password=<password>
+                  password
+  -V, --version   Print version information and exit.
 ```
 
 Manifest and output folder have default values. User can provide specific ones if needed.
@@ -109,6 +108,8 @@ on the provided manifest. For any questions or feedbacks please contact:
 Phone: +1 (514) 999-999 or email: ferlab@ferlab.bio
 
 Checking manifest file                             ✅
+
+password                                   [hidden]:
 
 Retrieve user credentials                          ✅
 

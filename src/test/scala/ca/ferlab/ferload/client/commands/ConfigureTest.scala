@@ -27,13 +27,7 @@ class ConfigureTest extends AnyFunSuite with BeforeAndAfter {
       mock
     }
 
-    override def readPassword(fmt: String): String = {
-      val mock = fmt.trim match {
-        case "password [hidden]" => "bar"
-        case _ => fail(s"$fmt isn't mocked")
-      }
-      mock
-    }
+    override def readPassword(fmt: String): String = ???
   }
 
   val mockFerloadInf: IFerload = new IFerload {
@@ -42,6 +36,7 @@ class ConfigureTest extends AnyFunSuite with BeforeAndAfter {
       config.put("url", "http://keycloak")
       config.put("realm", "abc")
       config.put("client-id", "123")
+      config.put("audience", "456")
       new JSONObject().put("keycloak", new JSONObject(config))
     }
 
@@ -56,10 +51,11 @@ class ConfigureTest extends AnyFunSuite with BeforeAndAfter {
     new CommandLine(new Configure(mockUserConfig, appTestConfig, mockCommandLineInf, mockFerloadInf)).execute()
     assert(mockUserConfig.get(FerloadUrl).equals("http://ferload"))
     assert(mockUserConfig.get(Username).equals("foo"))
-    assert(mockUserConfig.get(Password).equals("bar"))
+    assert(mockUserConfig.get(Token) == null)
     assert(mockUserConfig.get(KeycloakUrl).equals("http://keycloak"))
     assert(mockUserConfig.get(KeycloakRealm).equals("abc"))
     assert(mockUserConfig.get(KeycloakClientId).equals("123"))
+    assert(mockUserConfig.get(KeycloakAudience).equals("456"))
   }
 
   test("existing config has been updated") {
