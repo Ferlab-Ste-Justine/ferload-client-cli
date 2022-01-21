@@ -8,9 +8,10 @@ import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import picocli.CommandLine
-import picocli.CommandLine.{Command, Option}
+import picocli.CommandLine.{Command, IExitCodeGenerator, Option}
 
 import java.io.{File, FileReader}
+import java.util.Optional
 import scala.util.{Failure, Success, Using}
 
 @Command(name = "download", mixinStandardHelpOptions = true, description = Array("Download files based on provided manifest."),
@@ -20,7 +21,7 @@ class Download(userConfig: UserConfig,
                commandLine: ICommandLine,
                keycloak: IKeycloak,
                ferload: IFerload,
-               s3: IS3) extends BaseCommand(appConfig) with Runnable {
+               s3: IS3) extends BaseCommand(appConfig, commandLine) with Runnable with IExitCodeGenerator {
 
   @Option(names = Array("-m", "--manifest"), description = Array("manifest file location (default: ${DEFAULT-VALUE})"))
   var manifest: File = new File("manifest.tsv")
@@ -28,16 +29,20 @@ class Download(userConfig: UserConfig,
   @Option(names = Array("-o", "--output-dir"), description = Array("downloads location (default: ${DEFAULT-VALUE})"))
   var outputDir: File = new File(".")
 
+  @Option(names = Array("-p", "--password"), description = Array("password"))
+  var password: Optional[String] = Optional.empty
+
   override def run(): Unit = {
 
     val ferloadUrl = userConfig.get(FerloadUrl)
     val username = userConfig.get(Username)
-    val password = userConfig.get(Password)
+    var token = userConfig.get(Token)
     val keycloakUrl = userConfig.get(KeycloakUrl)
     val keycloakRealm = userConfig.get(KeycloakRealm)
     val keycloakClientId = userConfig.get(KeycloakClientId)
+    val keycloakAudience = userConfig.get(KeycloakAudience)
 
-    if (StringUtils.isAnyBlank(ferloadUrl, username, password, keycloakUrl, keycloakRealm, keycloakClientId)) {
+    if (StringUtils.isAnyBlank(ferloadUrl, username, keycloakUrl, keycloakRealm, keycloakClientId, keycloakAudience)) {
       println("Configuration is missing, please fill the missing information first.")
       println()
       new CommandLine(new Configure(userConfig, appConfig, commandLine, ferload)).execute()
@@ -53,23 +58,28 @@ class Download(userConfig: UserConfig,
 
       val padding = appConfig.getInt("padding")
 
-      val manifestContent: String = new CommandBlock[String]("Checking manifest file", successEmoji, padding) {
-        override def run(): String = {
-          extractManifestContent
-        }
-      }.execute()
+      val manifestContent: String = CommandBlock("Checking manifest file", successEmoji, padding) {
+        extractManifestContent
+      }
 
-      val token: String = new CommandBlock[String]("Retrieve user credentials", successEmoji, padding) {
-        override def run(): String = {
-          keycloak.getUserCredentials(username, password)
+      if (!keycloak.isValidToken(token)) {
+        val passwordStr = password.orElseGet(() => readLine("-p", "", password = true))
+        println()
+        token = CommandBlock("Retrieve user credentials", successEmoji, padding) {
+          val newToken = keycloak.getUserCredentials(username, passwordStr)
+          userConfig.set(Token, newToken)
+          userConfig.save()
+          newToken
         }
-      }.execute()
+      } else {
+        CommandBlock("Re-use user credentials", successEmoji, padding) {
+          ""
+        }
+      }
 
-      val links: Map[String, String] = new CommandBlock[Map[String, String]]("Retrieve Ferload download link(s)", successEmoji, padding) {
-        override def run(): Map[String, String] = {
-          ferload.getDownloadLinks(token, manifestContent)
-        }
-      }.execute()
+      val links: Map[String, String] = CommandBlock("Retrieve Ferload download link(s)", successEmoji, padding) {
+        ferload.getDownloadLinks(token, manifestContent)
+      }
 
       val totalExpectedDownloadSize = s3.getTotalExpectedDownloadSize(links)
       val downloadAgreement = appConfig.getString("download-agreement")
@@ -132,4 +142,5 @@ class Download(userConfig: UserConfig,
     }
   }
 
+  override def getExitCode: Int = 1
 }
