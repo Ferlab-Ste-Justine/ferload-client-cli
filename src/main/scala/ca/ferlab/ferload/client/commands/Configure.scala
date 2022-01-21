@@ -27,11 +27,10 @@ class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommand
     printIntroduction()
 
     if (reset) {
-      new CommandBlock[Unit]("Reset configuration", successEmoji) {
-        override def run(): Unit = {
-          userConfig.clear()
-        }
-      }.execute()
+      CommandBlock("Reset configuration", successEmoji) {
+        userConfig.clear()
+      }
+
     }
 
     val currentFerloadUrl = userConfig.get(FerloadUrl)
@@ -47,22 +46,19 @@ class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommand
     userConfig.set(Username, username.orElseGet(() => readLine("-u", currentUsername)))
     println()
 
-    val ferloadConfig: JSONObject = new CommandBlock[JSONObject]("Retrieve Ferload configuration", successEmoji) {
-      override def run(): JSONObject = {
-        ferload.getConfig
-      }
-    }.execute().getJSONObject("keycloak")
+    val ferloadConfig: JSONObject = CommandBlock("Retrieve Ferload configuration", successEmoji) {
+      ferload.getConfig
+    }.getJSONObject("keycloak")
 
     userConfig.set(KeycloakUrl, ferloadConfig.getString("url"))
     userConfig.set(KeycloakRealm, ferloadConfig.getString("realm"))
     userConfig.set(KeycloakClientId, ferloadConfig.getString("client-id"))
     userConfig.set(KeycloakAudience, ferloadConfig.getString("audience"))
 
-    new CommandBlock[Unit]("Configuration has been successfully updated", successEmoji) {
-      override def run(): Unit = {
-        userConfig.save()
-      }
-    }.execute()
+    CommandBlock("Configuration has been successfully updated", successEmoji) {
+      userConfig.save()
+    }
+
 
   }
 }

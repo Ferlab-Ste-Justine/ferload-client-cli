@@ -58,34 +58,28 @@ class Download(userConfig: UserConfig,
 
       val padding = appConfig.getInt("padding")
 
-      val manifestContent: String = new CommandBlock[String]("Checking manifest file", successEmoji, padding) {
-        override def run(): String = {
-          extractManifestContent
-        }
-      }.execute()
-      
+      val manifestContent: String = CommandBlock("Checking manifest file", successEmoji, padding) {
+        extractManifestContent
+      }
+
       if (!keycloak.isValidToken(token)) {
         val passwordStr = password.orElseGet(() => readLine("-p", "", password = true))
         println()
-        token = new CommandBlock[String]("Retrieve user credentials", successEmoji, padding) {
-          override def run(): String = {
-            val newToken = keycloak.getUserCredentials(username, passwordStr)
-            userConfig.set(Token, newToken)
-            userConfig.save()
-            newToken
-          }
-        }.execute()
-      } else {
-        new CommandBlock[String]("Re-use user credentials", successEmoji, padding) {
-          override def run(): String = { "" }
-        }.execute()
-      }
-      
-      val links: Map[String, String] = new CommandBlock[Map[String, String]]("Retrieve Ferload download link(s)", successEmoji, padding) {
-        override def run(): Map[String, String] = {
-          ferload.getDownloadLinks(token, manifestContent)
+        token = CommandBlock("Retrieve user credentials", successEmoji, padding) {
+          val newToken = keycloak.getUserCredentials(username, passwordStr)
+          userConfig.set(Token, newToken)
+          userConfig.save()
+          newToken
         }
-      }.execute()
+      } else {
+        CommandBlock("Re-use user credentials", successEmoji, padding) {
+          ""
+        }
+      }
+
+      val links: Map[String, String] = CommandBlock("Retrieve Ferload download link(s)", successEmoji, padding) {
+        ferload.getDownloadLinks(token, manifestContent)
+      }
 
       val totalExpectedDownloadSize = s3.getTotalExpectedDownloadSize(links)
       val downloadAgreement = appConfig.getString("download-agreement")
@@ -109,7 +103,7 @@ class Download(userConfig: UserConfig,
       }
     }
   }
-  
+
   private def extractManifestContent: String = {
     val manifestHeader = appConfig.getString("manifest-header")
     val manifestSeparator = appConfig.getString("manifest-separator").charAt(0)
