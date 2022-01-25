@@ -12,7 +12,7 @@ java -version
 
 - Go to the [releases](https://github.com/Ferlab-Ste-Justine/ferload-client-cli/releases) page
 - Download the last one (or a specific version)
-- In **Assets** click on the **ferload-client.jar** file
+- In **Assets** click on the **ferload-client** file
 
 *Note: your browser may ask to confirm the download*
 
@@ -21,7 +21,7 @@ java -version
 This tool provides several commands and by default will display usage if none specified:
 
 ```
-user@localhost:~$ java -jar ferload-client.jar
+user@localhost:~$ ./ferload-client
 
 ```
 
@@ -61,7 +61,7 @@ All the params are optional if not provided user will access interactive prompts
 ### Example
 
 ```
-user@localhost:~$ java -jar ferload-client.jar configure
+user@localhost:~$ ./ferload-client configure
 
 Welcome to Ferload Client, this tools will download the files based
 on the provided manifest. For any questions or feedbacks please contact:
@@ -101,7 +101,7 @@ Manifest and output folder have default values. User can provide specific ones i
 
 ### Example
 ```
-user@localhost:~$ java -jar ferload-client.jar download -m ./data/m1.tsv -o ./data
+user@localhost:~$ ./ferload-client download -m ./data/m1.tsv -o ./data
 
 Welcome to Ferload Client, this tools will download the files based
 on the provided manifest. For any questions or feedbacks please contact:
@@ -114,6 +114,8 @@ password                                   [hidden]:
 Retrieve user credentials                          ✅
 
 Retrieve Ferload download link(s)                  ✅
+
+Compute total average expected download size       ✅
 
 The total expected average download size will be 4 GB do you agree ? [yes]:
 

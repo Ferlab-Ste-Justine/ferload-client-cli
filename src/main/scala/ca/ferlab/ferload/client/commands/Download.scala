@@ -81,7 +81,10 @@ class Download(userConfig: UserConfig,
         ferload.getDownloadLinks(token, manifestContent)
       }
 
-      val totalExpectedDownloadSize = s3.getTotalExpectedDownloadSize(links)
+      val totalExpectedDownloadSize = CommandBlock("Compute total average expected download size", successEmoji, padding) {
+        s3.getTotalExpectedDownloadSize(links)
+      }
+      
       val downloadAgreement = appConfig.getString("download-agreement")
       val agreedToDownload = commandLine.readLine(s"The total average expected download size will be " +
         s"${FileUtils.byteCountToDisplaySize(totalExpectedDownloadSize)} do you want to continue ? [$downloadAgreement]")
@@ -127,7 +130,10 @@ class Download(userConfig: UserConfig,
       }
 
       parser.getRecords.stream().forEach(record => {
-        builder.append(s"${record.get(fileIdColumnIndex)}\n")
+        val url = record.get(fileIdColumnIndex)
+        if (StringUtils.isNotBlank(url)) {
+          builder.append(s"$url\n")
+        }
       })
 
       if (builder.isEmpty) {
