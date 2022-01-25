@@ -31,18 +31,19 @@ class S3Client(nThreads: Int = 1) extends IS3 {
   }
 
   override def download(outputDir: File, links: Map[String, String]): Set[File] = {
+    val padding = links.keySet.max.length + 1
     val downloads = Future.traverse(links.keySet)(fileName => {
       val link = links(fileName)
-      Future(download(outputDir, fileName, link))
+      Future(download(outputDir, fileName, link, padding))
     })
     Await.result(downloads, Duration.Inf)
   }
 
-  private def download(outputDir: File, fileName: String, link: String): File = {
+  private def download(outputDir: File, fileName: String, link: String, padding: Int): File = {
     val file = new File(outputDir.getAbsolutePath + File.separator + fileName)
     val request = new PresignedUrlDownloadRequest(new URL(link))
     val download = trx.download(request, file)
-    val progressListener = new S3TransferProgressListener(fileName, download)
+    val progressListener = new S3TransferProgressListener(fileName, download, padding)
     download.addProgressListener(progressListener)
     download.waitForCompletion()
     progressListener.stop()
