@@ -45,7 +45,7 @@ object ConsoleProgressBar {
         val done = "#" * ((percent * size) / 100).toInt
         val remaining = " " * (size - done.length)
 
-        printf(formatBar, StringUtils.rightPad(name, padding + 1), done, remaining, formatSize(value, total), percent.toInt)
+        printf(formatBar, StringUtils.rightPad(name, padding), done, remaining, formatSize(value, total), percent.toInt)
 
         if (value == total) {
           print(packageEmoji)

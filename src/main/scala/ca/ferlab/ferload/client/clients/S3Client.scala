@@ -31,7 +31,7 @@ class S3Client(nThreads: Int = 1) extends IS3 {
   }
 
   override def download(outputDir: File, links: Map[String, String]): Set[File] = {
-    val padding = links.keySet.max.length
+    val padding = links.keySet.max.length + 1
     val downloads = Future.traverse(links.keySet)(fileName => {
       val link = links(fileName)
       Future(download(outputDir, fileName, link, padding))

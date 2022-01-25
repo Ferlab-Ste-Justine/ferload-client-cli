@@ -13,8 +13,13 @@ java -version
 - Go to the [releases](https://github.com/Ferlab-Ste-Justine/ferload-client-cli/releases) page
 - Download the last one (or a specific version)
 - In **Assets** click on the **ferload-client** file
+*(your browser may ask to confirm the download)*
+- Once it's downloaded give execution right to the file with the following:
 
-*Note: your browser may ask to confirm the download*
+```
+user@localhost:~$ chmod +x ./ferload-client
+
+```
 
 # User guide
 
