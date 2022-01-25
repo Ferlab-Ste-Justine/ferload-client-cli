@@ -25,7 +25,7 @@ object ConsoleProgressBar {
     }
   }
 
-  def displayProgressBar(name: String, value: Long, total: Long, size: Int = 50, displayForEveryPercent: Int = 10): Unit = {
+  def displayProgressBar(name: String, padding: Int, value: Long, total: Long, size: Int = 50, displayForEveryPercent: Int = 10): Unit = {
 
     // we want to avoid multiple threads to print at the same time
     synchronized {
@@ -45,7 +45,7 @@ object ConsoleProgressBar {
         val done = "#" * ((percent * size) / 100).toInt
         val remaining = " " * (size - done.length)
 
-        printf(formatBar, name, done, remaining, formatSize(value, total), percent.toInt)
+        printf(formatBar, StringUtils.rightPad(name, padding + 1), done, remaining, formatSize(value, total), percent.toInt)
 
         if (value == total) {
           print(packageEmoji)
