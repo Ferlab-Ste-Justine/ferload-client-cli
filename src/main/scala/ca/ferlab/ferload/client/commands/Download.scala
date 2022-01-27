@@ -92,7 +92,7 @@ class Download(userConfig: UserConfig,
 
       if (agreedToDownload.equals(downloadAgreement) || StringUtils.isBlank(agreedToDownload)) {
 
-        val usableSpace = s3.getTotalAvailableDiskSpaceAt(manifest)
+        val usableSpace = s3.getTotalAvailableDiskSpaceAt(outputDir)
         if (usableSpace < totalExpectedDownloadSize) {
           throw new IllegalStateException(s"Not enough disk space available $usableSpace < $totalExpectedDownloadSize")
         }
