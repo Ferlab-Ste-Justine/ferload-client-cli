@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils
 import org.keycloak.authorization.client.{AuthzClient, Configuration}
 import org.keycloak.representations.idm.authorization.AuthorizationRequest
 
+import java.time.Instant
 import java.util.{Collections, Date}
 
 class KeycloakClient(config: UserConfig) extends IKeycloak {
@@ -35,8 +36,9 @@ class KeycloakClient(config: UserConfig) extends IKeycloak {
       if (StringUtils.isBlank(token)) {
         isValid = false
       } else {
-        val decoded = JWT.decode(token);
-        if(decoded.getExpiresAt.before(new Date())) {
+        val date = Date.from(Instant.now.minusSeconds(15))  // give us a few delay
+        val decoded = JWT.decode(token)
+        if(decoded.getExpiresAt.before(date)) {
           isValid = false
         }
       }

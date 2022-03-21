@@ -24,7 +24,10 @@ class S3Client(nThreads: Int = 1) extends IS3 {
   override def getTotalExpectedDownloadSize(links: Map[String, String]): Long = {
     val sizes = Future.traverse(links.keySet)(fileName => {
       val link = links(fileName)
-      Future(new URL(link).openConnection.getHeaderField(HttpHeaders.CONTENT_LENGTH).toLong)
+      Future({
+        val header = new URL(link).openConnection.getHeaderField(HttpHeaders.CONTENT_LENGTH)
+        Option(header).map(s => s.toLong).getOrElse(0L)
+      })
     })
     Await.result(sizes, Duration.Inf).sum
   }
