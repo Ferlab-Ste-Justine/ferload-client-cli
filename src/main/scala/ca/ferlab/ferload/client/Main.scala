@@ -28,8 +28,8 @@ object Main {
   Using(this.getClass.getClassLoader.getResourceAsStream("cacerts.jks")) { is =>
     val tempFile = File.createTempFile("cacerts", ".jks")
     FileUtils.copyInputStreamToFile(is, tempFile)
-    System.setProperty(SDKGlobalConfiguration.DISABLE_CERT_CHECKING_SYSTEM_PROPERTY, "true")  // aws client
-    System.setProperty("javax.net.ssl.trustStore", tempFile.getPath)  // keycloak / ferload
+    //System.setProperty(SDKGlobalConfiguration.DISABLE_CERT_CHECKING_SYSTEM_PROPERTY, "true")
+    System.setProperty("javax.net.ssl.trustStore", tempFile.getPath)  // keycloak / ferload / aws
     System.setProperty("javax.net.ssl.trustStorePassword", "changeit")
     System.setProperty("javax.net.ssl.trustStoreType", "jks")
     tempFile.getPath
