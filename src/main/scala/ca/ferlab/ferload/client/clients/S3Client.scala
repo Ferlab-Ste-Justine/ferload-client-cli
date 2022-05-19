@@ -1,6 +1,8 @@
 package ca.ferlab.ferload.client.clients
 
 import ca.ferlab.ferload.client.clients.inf.IS3
+import com.amazonaws.regions.Regions
+import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.amazonaws.services.s3.model.PresignedUrlDownloadRequest
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder
 import org.apache.http.HttpHeaders
@@ -18,7 +20,10 @@ class S3Client(nThreads: Int = 1) extends IS3 {
     ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(nThreads))
   sys.addShutdownHook(executorContext.shutdown())
   
-  private val trx = TransferManagerBuilder.defaultTransferManager()
+  private val awsClient = AmazonS3ClientBuilder.standard().withRegion(Regions.DEFAULT_REGION).build()
+  private val trx = TransferManagerBuilder.standard().withS3Client(awsClient).build()
+  
+  sys.addShutdownHook(trx.shutdownNow())
   sys.addShutdownHook(trx.shutdownNow())
 
   override def getTotalExpectedDownloadSize(links: Map[String, String]): Long = {
