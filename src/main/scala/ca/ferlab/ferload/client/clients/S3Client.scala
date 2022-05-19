@@ -20,8 +20,8 @@ class S3Client(nThreads: Int = 1) extends IS3 {
     ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(nThreads))
   sys.addShutdownHook(executorContext.shutdown())
   
-  private val awsClient = AmazonS3ClientBuilder.standard().withRegion(Regions.DEFAULT_REGION).build()
-  private val trx = TransferManagerBuilder.standard().withS3Client(awsClient).build()
+  private lazy val awsClient = AmazonS3ClientBuilder.standard().withRegion(Regions.DEFAULT_REGION).build()
+  private lazy val trx = TransferManagerBuilder.standard().withS3Client(awsClient).build()
   
   sys.addShutdownHook(trx.shutdownNow())
   sys.addShutdownHook(trx.shutdownNow())
