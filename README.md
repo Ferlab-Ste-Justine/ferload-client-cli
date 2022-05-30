@@ -68,9 +68,8 @@ All the params are optional if not provided user will access interactive prompts
 ```
 user@localhost:~$ ./ferload-client configure
 
-Welcome to Ferload Client, this tools will download the files based
-on the provided manifest. For any questions or feedbacks please contact:
-Phone: +1 (514) 999-999 or email: ferlab@ferlab.bio
+Welcome to Ferload Client, this tools will download
+the files based on the provided manifest.
 
 Press 'enter' to keep the existing configuration [current].
 
@@ -108,9 +107,8 @@ Manifest and output folder have default values. User can provide specific ones i
 ```
 user@localhost:~$ ./ferload-client download -m ./data/m1.tsv -o ./data
 
-Welcome to Ferload Client, this tools will download the files based
-on the provided manifest. For any questions or feedbacks please contact:
-Phone: +1 (514) 999-999 or email: ferlab@ferlab.bio
+Welcome to Ferload Client, this tools will download
+the files based on the provided manifest.
 
 Checking manifest file                             ✅
 

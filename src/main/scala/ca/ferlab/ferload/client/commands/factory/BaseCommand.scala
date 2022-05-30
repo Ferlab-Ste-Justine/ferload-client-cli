@@ -14,9 +14,8 @@ class BaseCommand(appConfig: Config, commandLine: ICommandLine) {
 
   def printIntroduction(): Unit = {
     println(
-      s"""Welcome to Ferload Client, this tools will download the files based
-on the provided manifest. For any questions or feedbacks please contact:
-${appConfig.getString("contact")}""")
+      s"""Welcome to Ferload Client, this tools will download
+the files based on the provided manifest.""")
     println()
   }
 
