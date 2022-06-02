@@ -12,7 +12,7 @@ import picocli.CommandLine.{Command, IExitCodeGenerator, Option}
 
 import java.io.{File, FileReader}
 import java.util.Optional
-import scala.util.{Failure, Success, Using}
+import scala.util.{Failure, Success, Try, Using}
 
 @Command(name = "download", mixinStandardHelpOptions = true, description = Array("Download files based on provided manifest."),
   version = Array("0.1"))
@@ -78,11 +78,19 @@ class Download(userConfig: UserConfig,
       }
 
       val links: Map[String, String] = CommandBlock("Retrieve Ferload download link(s)", successEmoji, padding) {
-        ferload.getDownloadLinks(token, manifestContent)
+        Try(ferload.getDownloadLinks(token, manifestContent)) match {
+          case Success(links) => links
+          case Failure(e) => {
+            // always refresh token if failed
+            userConfig.remove(Token)
+            userConfig.save()
+            throw e
+          }
+        }
       }
 
       val totalExpectedDownloadSize = CommandBlock("Compute total average expected download size", successEmoji, padding) {
-        s3.getTotalExpectedDownloadSize(links)
+        s3.getTotalExpectedDownloadSize(links, appConfig.getLong("size-estimation-timeout"))
       }
       
       val downloadAgreement = appConfig.getString("download-agreement")

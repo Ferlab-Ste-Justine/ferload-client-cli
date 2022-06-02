@@ -118,7 +118,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
         Set(new File("f1"), new File("f2"))
       }
 
-      override def getTotalExpectedDownloadSize(links: Map[String, String]): Long = 0L
+      override def getTotalExpectedDownloadSize(links: Map[String, String], timeout: Long): Long = 0L
 
       override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 1L
     }
@@ -135,7 +135,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
         Set(new File("f1"), new File("f2"))
       }
 
-      override def getTotalExpectedDownloadSize(links: Map[String, String]): Long = 0L
+      override def getTotalExpectedDownloadSize(links: Map[String, String], timeout: Long): Long = 0L
 
       override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 1L
     }
@@ -152,7 +152,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
         Set(new File("f1"), new File("f2"))
       }
 
-      override def getTotalExpectedDownloadSize(links: Map[String, String]): Long = 2L
+      override def getTotalExpectedDownloadSize(links: Map[String, String], timeout: Long): Long = 2L
 
       override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 1L
     }
@@ -169,7 +169,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
         Set(new File("f1"), new File("f2"))
       }
 
-      override def getTotalExpectedDownloadSize(links: Map[String, String]): Long = 1L
+      override def getTotalExpectedDownloadSize(links: Map[String, String], timeout: Long): Long = 1L
 
       override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 2L
     }
