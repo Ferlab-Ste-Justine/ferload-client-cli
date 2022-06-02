@@ -11,7 +11,7 @@ import java.io.File
 import java.net.URL
 import java.nio.file.{Files, Paths}
 import java.util.concurrent.Executors
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, SECONDS}
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutorService, Future}
 
 class S3Client(nThreads: Int = 1) extends IS3 {
@@ -24,9 +24,8 @@ class S3Client(nThreads: Int = 1) extends IS3 {
   private lazy val trx = TransferManagerBuilder.standard().withS3Client(awsClient).build()
   
   sys.addShutdownHook(trx.shutdownNow())
-  sys.addShutdownHook(trx.shutdownNow())
 
-  override def getTotalExpectedDownloadSize(links: Map[String, String]): Long = {
+  override def getTotalExpectedDownloadSize(links: Map[String, String], timeout: Long): Long = {
     val sizes = Future.traverse(links.keySet)(fileName => {
       val link = links(fileName)
       Future({
@@ -34,11 +33,12 @@ class S3Client(nThreads: Int = 1) extends IS3 {
         Option(header).map(s => s.toLong).getOrElse(0L)
       })
     })
-    Await.result(sizes, Duration.Inf).sum
+    Await.result(sizes, Duration(timeout, SECONDS)).sum
   }
 
   override def download(outputDir: File, links: Map[String, String]): Set[File] = {
-    val padding = links.keySet.max.length + 1
+    // find the file with the biggest name
+    val padding = links.keysIterator.reduceLeft((l,r) => if (l.length > r.length) l else r).length + 1
     val downloads = Future.traverse(links.keySet)(fileName => {
       val link = links(fileName)
       Future(download(outputDir, fileName, link, padding))

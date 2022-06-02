@@ -15,9 +15,11 @@ class UserConfigTest extends AnyFunSuite with BeforeAndAfter {
     userConfig.clear()
   }
 
-  test("set / get") {
+  test("set / get / remove") {
     userConfig.set(Username, "foo")
     assert(userConfig.get(Username).equals("foo"))
+    userConfig.remove(Username)
+    assert(userConfig.get(Username) == null)
   }
 
   test("clear") {

@@ -17,6 +17,10 @@ class UserConfig(val path: String) {
   def set(configName: UserConfigName, value: String): Unit = {
     Option(value).map(props.put(configName.name, _))
   }
+  
+  def remove(configName: UserConfigName): Unit = {
+    props.remove(configName.name)
+  }
 
   def clear(): Unit = {
     props.clear()
