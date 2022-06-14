@@ -120,7 +120,7 @@ Retrieve Ferload download link(s)                  ✅
 
 Compute total average expected download size       ✅
 
-The total expected average download size will be 4 GB do you agree ? [yes]:
+The total average expected download size will be 4GB do you want to continue (your available disk space is: 87 GB) ? [yes]
 
 FIL0000010 [##################################################]      0 /      0 MB (100%) 📦
 FIL0000002 [##################################################]    125 /    125 MB (100%) 📦
@@ -138,6 +138,13 @@ FIL0000006 [##################################################]    150 /    150 
 Total downloaded files: 12 located here: ./data
 
 ```
+
+*Note: in case the tool can't compute the total average expected download size, the following message will be displayed:*
+```
+Failed to compute total average expected download size, reason: Future timed out after [60 seconds]
+You can still proceed with the download, verify you have remaining disk-space available. ✅
+```
+
 # Technical
 
 ## Manifest file

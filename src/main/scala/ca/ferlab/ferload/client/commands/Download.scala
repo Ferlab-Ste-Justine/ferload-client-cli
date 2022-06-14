@@ -90,17 +90,29 @@ class Download(userConfig: UserConfig,
       }
 
       val totalExpectedDownloadSize = CommandBlock("Compute total average expected download size", successEmoji, padding) {
-        s3.getTotalExpectedDownloadSize(links, appConfig.getLong("size-estimation-timeout"))
+        Try(s3.getTotalExpectedDownloadSize(links, appConfig.getLong("size-estimation-timeout"))) match {
+          case Success(size) => size
+          case Failure(e) => {
+            println()
+            println()
+            println(s"Failed to compute total average expected download size, reason: ${e.getMessage}")
+            print(s"You can still proceed with the download, verify you have remaining disk-space available.")
+            0L
+          }
+        }
       }
+      
+      val totalExpectedDownloadSizeStr = if(totalExpectedDownloadSize > 0) FileUtils.byteCountToDisplaySize(totalExpectedDownloadSize) else "-"
+      val usableSpace = s3.getTotalAvailableDiskSpaceAt(outputDir)
+      val usableSPaceStr = FileUtils.byteCountToDisplaySize(usableSpace)
       
       val downloadAgreement = appConfig.getString("download-agreement")
       val agreedToDownload = commandLine.readLine(s"The total average expected download size will be " +
-        s"${FileUtils.byteCountToDisplaySize(totalExpectedDownloadSize)} do you want to continue ? [$downloadAgreement]")
+        s"$totalExpectedDownloadSizeStr do you want to continue (your available disk space is: $usableSPaceStr) ? [$downloadAgreement]")
       println()
 
       if (agreedToDownload.equals(downloadAgreement) || StringUtils.isBlank(agreedToDownload)) {
 
-        val usableSpace = s3.getTotalAvailableDiskSpaceAt(outputDir)
         if (usableSpace < totalExpectedDownloadSize) {
           throw new IllegalStateException(s"Not enough disk space available $usableSpace < $totalExpectedDownloadSize")
         }
