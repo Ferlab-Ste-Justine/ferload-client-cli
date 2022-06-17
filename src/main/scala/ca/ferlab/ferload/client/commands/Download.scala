@@ -12,6 +12,7 @@ import picocli.CommandLine.{Command, IExitCodeGenerator, Option}
 
 import java.io.{File, FileReader}
 import java.util.Optional
+import scala.collection.mutable
 import scala.util.{Failure, Success, Try, Using}
 
 @Command(name = "download", mixinStandardHelpOptions = true, description = Array("Download files based on provided manifest."),
@@ -31,6 +32,8 @@ class Download(userConfig: UserConfig,
 
   @Option(names = Array("-p", "--password"), description = Array("password"))
   var password: Optional[String] = Optional.empty
+  
+  private val NO_SIZE = 0L;
 
   override def run(): Unit = {
 
@@ -58,7 +61,7 @@ class Download(userConfig: UserConfig,
 
       val padding = appConfig.getInt("padding")
 
-      val manifestContent: String = CommandBlock("Checking manifest file", successEmoji, padding) {
+      val manifestContent: ManifestContent = CommandBlock("Checking manifest file", successEmoji, padding) {
         extractManifestContent
       }
 
@@ -78,7 +81,7 @@ class Download(userConfig: UserConfig,
       }
 
       val links: Map[String, String] = CommandBlock("Retrieve Ferload download link(s)", successEmoji, padding) {
-        Try(ferload.getDownloadLinks(token, manifestContent)) match {
+        Try(ferload.getDownloadLinks(token, manifestContent.urls)) match {
           case Success(links) => links
           case Failure(e) => {
             // always refresh token if failed
@@ -90,16 +93,17 @@ class Download(userConfig: UserConfig,
       }
 
       val totalExpectedDownloadSize = CommandBlock("Compute total average expected download size", successEmoji, padding) {
-        Try(s3.getTotalExpectedDownloadSize(links, appConfig.getLong("size-estimation-timeout"))) match {
-          case Success(size) => size
-          case Failure(e) => {
-            println()
-            println()
-            println(s"Failed to compute total average expected download size, reason: ${e.getMessage}")
-            print(s"You can still proceed with the download, verify you have remaining disk-space available.")
-            0L
-          }
-        }
+        manifestContent.totalSize.getOrElse(
+          Try(s3.getTotalExpectedDownloadSize(links, appConfig.getLong("size-estimation-timeout"))) match {
+            case Success(size) => size
+            case Failure(e) => {
+              println()
+              println()
+              println(s"Failed to compute total average expected download size, reason: ${e.getMessage}")
+              print(s"You can still proceed with the download, verify you have remaining disk-space available.")
+              NO_SIZE
+            }
+          })
       }
       
       val totalExpectedDownloadSizeStr = if(totalExpectedDownloadSize > 0) FileUtils.byteCountToDisplaySize(totalExpectedDownloadSize) else "-"
@@ -127,8 +131,9 @@ class Download(userConfig: UserConfig,
     }
   }
 
-  private def extractManifestContent: String = {
+  private def extractManifestContent: ManifestContent = {
     val manifestHeader = appConfig.getString("manifest-header")
+    val manifestSize = appConfig.getString("manifest-size")
     val manifestSeparator = appConfig.getString("manifest-separator").charAt(0)
 
     if (!manifest.exists()) {
@@ -142,8 +147,10 @@ class Download(userConfig: UserConfig,
         .withTrim()
         .withFirstRecordAsHeader()
         .parse(reader)
-      val builder = new StringBuilder
+      val urls = new mutable.StringBuilder
+      var totalSize = NO_SIZE
       val fileIdColumnIndex = parser.getHeaderMap.getOrDefault(manifestHeader, -1)
+      val sizeColumnIndex = parser.getHeaderMap.getOrDefault(manifestSize, -1)
 
       if (fileIdColumnIndex == -1) {
         throw new IllegalStateException("Missing column: " + manifestHeader)
@@ -152,21 +159,30 @@ class Download(userConfig: UserConfig,
       parser.getRecords.stream().forEach(record => {
         val url = record.get(fileIdColumnIndex)
         if (StringUtils.isNotBlank(url)) {
-          builder.append(s"$url\n")
+          urls.append(s"$url\n")
+        }
+        if (sizeColumnIndex != -1) {  // size column exist (optional)
+          val size = record.get(sizeColumnIndex)
+          if (StringUtils.isNotBlank(size)) {
+            totalSize += size.toLong
+          }
         }
       })
 
-      if (builder.isEmpty) {
+      if (urls.isEmpty) {
         throw new IllegalStateException("Empty content")
       }
 
-      builder.toString()
+
+      ManifestContent(urls.toString(), if(totalSize == NO_SIZE) None else Some(totalSize))
 
     } match {
       case Success(value) => value
       case Failure(e) => throw new IllegalStateException(s"Invalid manifest file: " + e.getMessage, e)
     }
   }
+  
+  case class ManifestContent(urls: String, totalSize: scala.Option[Long])
 
   override def getExitCode: Int = 1
 }

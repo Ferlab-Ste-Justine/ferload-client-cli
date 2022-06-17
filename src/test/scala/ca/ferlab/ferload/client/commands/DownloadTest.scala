@@ -152,7 +152,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
         Set(new File("f1"), new File("f2"))
       }
 
-      override def getTotalExpectedDownloadSize(links: Map[String, String], timeout: Long): Long = 2L
+      override def getTotalExpectedDownloadSize(links: Map[String, String], timeout: Long): Long = ???
 
       override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 1L
     }
