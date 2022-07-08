@@ -2,7 +2,9 @@
 
 Official Ferload Client command line interface for files download.
 
-This tool requires JRE >= 8, you can verify the installed version using the following:
+This tool works on **Windows / MacOS / Linux** and requires JRE >= 8
+
+You can verify the installed version using the following:
 
 ```shell
 java -version
@@ -14,23 +16,33 @@ java -version
 - Download the last one (or a specific version)
 - In **Assets** click on the **ferload-client** file
 *(your browser may ask to confirm the download)*
-- Once it's downloaded give execution right to the file with the following:
+
+## MacOS / Linux
+Once it's downloaded give execution rights to the file with the following:
 
 ```
 user@localhost:~$ chmod +x ./ferload-client
-
 ```
-
 # User guide
 
 This tool provides several commands and by default will display usage if none specified:
-
+- MacOS / Linux
 ```
 user@localhost:~$ ./ferload-client
+```
+- Windows
 
+You can use default DOS command line or PowerShell like the following:
+
+```shell
+C:\Users\user>ferload-client
 ```
 
-Should display:
+If you have the following error: `'ferload-client' is not recognized as an internal or external command, operable program or batch file.`
+
+**Rename the file into: `ferload-client.bat`**
+
+- Should display
 
 ```
 Usage: ferload-client [-hV] [COMMAND]

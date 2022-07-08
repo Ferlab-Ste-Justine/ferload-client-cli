@@ -22,14 +22,14 @@ libraryDependencies += "com.auth0" % "java-jwt" % "3.18.2"
 libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.12.14"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.7" % "test"
 
-// import sbtassembly.AssemblyPlugin.defaultUniversalScript
-import sbtassembly.AssemblyPlugin.defaultShellScript
+import sbtassembly.AssemblyPlugin.defaultUniversalScript
+//import sbtassembly.AssemblyPlugin.defaultShellScript
 
 assembly / mainClass := Some("ca.ferlab.ferload.client.Main")
 assembly / test := {}
 assembly / assemblyJarName := s"${name.value}"
-// assembly / assemblyOption := (assembly / assemblyOption).value.copy(prependShellScript = Some(defaultUniversalScript(shebang = false)))
-assembly / assemblyOption := (assembly / assemblyOption).value.copy(prependShellScript = Some(defaultShellScript))
+assembly / assemblyOption := (assembly / assemblyOption).value.copy(prependShellScript = Some(defaultUniversalScript(shebang = false)))
+// assembly / assemblyOption := (assembly / assemblyOption).value.copy(prependShellScript = Some(defaultShellScript))
 
 assembly / assemblyMergeStrategy  := {
   case PathList("module-info.class") => MergeStrategy.discard
