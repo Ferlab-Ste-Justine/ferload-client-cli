@@ -166,20 +166,21 @@ This file is downloaded by the user from the portal or received by email.
 Example of content:
 
 ```
-file_id
-FIL0000001
-FIL0000002
-FIL0000003
-FIL0000004
-FIL0000005
-FIL0000006
-FIL0000007
-FIL0000008
-FIL0000009
-FIL0000010
-FIL0000011
-FIL0000012
+url size
+path/FIL0000001 10
+path/FIL0000002 20
+path/FIL0000003 
+path/FIL0000004 
+path/FIL0000005 100
+path/FIL0000006 99
+path/FIL0000007 
+path/FIL0000008 41
+path/FIL0000009 5
+path/FIL0000010 78
+path/FIL0000011 1500
+path/FIL0000012 0
 ```
+*Note: the character separator between columns is a **tabulation** `\t`*
 ## Sequence diagrams
 
 ### Configure

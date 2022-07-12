@@ -161,7 +161,7 @@ class Download(userConfig: UserConfig,
         if (StringUtils.isNotBlank(url)) {
           urls.append(s"$url\n")
         }
-        if (sizeColumnIndex != -1) {  // size column exist (optional)
+        if (record.isSet(sizeColumnIndex)) {  // size column exist (optional)
           val size = record.get(sizeColumnIndex)
           if (StringUtils.isNotBlank(size)) {
             totalSize += size.toLong
