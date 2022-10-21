@@ -69,5 +69,13 @@ class ConfigureTest extends AnyFunSuite with BeforeAndAfter {
     new CommandLine(new Configure(mockUserConfig, appTestConfig, mockCommandLineInf, mockFerloadInf)).execute("-r")
     assert(mockUserConfig.get(Username).equals("foo"))
   }
+  
+  test("revoke user token") {
+    mockUserConfig.set(Username, "foo")
+    mockUserConfig.set(Token, "token")
+    new CommandLine(new Configure(mockUserConfig, appTestConfig, mockCommandLineInf, mockFerloadInf)).execute("-ubar")
+    assert(mockUserConfig.get(Username).equals("bar"))
+    assert(mockUserConfig.get(Token) == null)
+  }
 
 }

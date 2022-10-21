@@ -10,7 +10,7 @@ import picocli.CommandLine.{Command, Option}
 
 import java.util.Optional
 
-@Command(name = "configure", mixinStandardHelpOptions = true, description = Array(" Help configure this tool."), version = Array("0.1"))
+@Command(name = "configure", mixinStandardHelpOptions = true, description = Array(" Help configure this tool."))
 class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommandLine, ferload: IFerload) extends BaseCommand(appConfig, commandLine) with Runnable {
 
   @Option(names = Array("-f", "--ferload-url"), description = Array("Ferload url"))
@@ -44,6 +44,8 @@ class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommand
 
     userConfig.set(FerloadUrl, ferloadUrl.orElseGet(() => readLine("-f", currentFerloadUrl)))
     userConfig.set(Username, username.orElseGet(() => readLine("-u", currentUsername)))
+    // if username changed then revoke last token
+    if (!userConfig.get(Username).equals(currentUsername)) userConfig.remove(Token)
     println()
 
     val ferloadConfig: JSONObject = CommandBlock("Retrieve Ferload configuration", successEmoji) {

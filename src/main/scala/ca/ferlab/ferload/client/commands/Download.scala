@@ -15,8 +15,7 @@ import java.util.Optional
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try, Using}
 
-@Command(name = "download", mixinStandardHelpOptions = true, description = Array("Download files based on provided manifest."),
-  version = Array("0.1"))
+@Command(name = "download", mixinStandardHelpOptions = true, description = Array("Download files based on provided manifest."))
 class Download(userConfig: UserConfig,
                appConfig: Config,
                commandLine: ICommandLine,
