@@ -3,7 +3,7 @@ package ca.ferlab.ferload.client.commands.factory
 import ca.ferlab.ferload.client.clients.inf.ICommandLine
 import com.typesafe.config.Config
 import org.apache.commons.lang3.StringUtils
-import picocli.CommandLine.Model.CommandSpec
+import picocli.CommandLine.Model.{CommandSpec, OptionSpec}
 import picocli.CommandLine.Spec
 
 class BaseCommand(appConfig: Config, commandLine: ICommandLine) {
@@ -20,7 +20,7 @@ the files based on the provided manifest.""")
   }
 
   protected def readLine(optionName: String, currentValue: String, password: Boolean = false): String = {
-    val optionDesc = scala.Option(spec).map(_.optionsMap.get(optionName).description.mkString).getOrElse(optionName)
+    val optionDesc = scala.Option(spec).map(s => Option(s.optionsMap.get(optionName)).map(_.description.mkString).getOrElse(optionName)).getOrElse(optionName)
     val fmt = formatFmt(optionDesc, currentValue, password)
     val line: String = if (password) commandLine.readPassword(fmt) else commandLine.readLine(fmt)
     scala.Option(line).filter(StringUtils.isNotBlank).getOrElse(currentValue)

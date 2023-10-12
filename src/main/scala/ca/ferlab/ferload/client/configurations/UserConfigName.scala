@@ -15,3 +15,9 @@ case object KeycloakRealm extends UserConfigName("keycloak-realm")
 case object KeycloakClientId extends UserConfigName("keycloak-client-id")
 
 case object KeycloakAudience extends UserConfigName("keycloak-audience")
+
+case object Method extends UserConfigName("method")
+
+case object TokenLink extends UserConfigName("token-link")
+
+case object TokenHelper extends UserConfigName("token-helper")

@@ -10,6 +10,11 @@ import org.keycloak.representations.idm.authorization.AuthorizationRequest
 import java.time.Instant
 import java.util.{Collections, Date}
 
+object KeycloakClient {
+  val AUTH_METHOD_PASSWORD = "password"
+  val AUTH_METHOD_TOKEN = "token"
+}
+
 class KeycloakClient(config: UserConfig) extends IKeycloak {
 
   // lazy because will fail to init if configuration is empty

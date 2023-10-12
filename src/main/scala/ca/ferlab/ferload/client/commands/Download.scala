@@ -1,5 +1,6 @@
 package ca.ferlab.ferload.client.commands
 
+import ca.ferlab.ferload.client.clients.KeycloakClient
 import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak, IS3}
 import ca.ferlab.ferload.client.commands.factory.{BaseCommand, CommandBlock}
 import ca.ferlab.ferload.client.configurations._
@@ -8,7 +9,7 @@ import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import picocli.CommandLine
-import picocli.CommandLine.{Command, IExitCodeGenerator, Option}
+import picocli.CommandLine.{Command, IExitCodeGenerator, Option, usage}
 
 import java.io.{File, FileReader}
 import java.util.Optional
@@ -36,15 +37,7 @@ class Download(userConfig: UserConfig,
 
   override def run(): Unit = {
 
-    val ferloadUrl = userConfig.get(FerloadUrl)
-    val username = userConfig.get(Username)
-    var token = userConfig.get(Token)
-    val keycloakUrl = userConfig.get(KeycloakUrl)
-    val keycloakRealm = userConfig.get(KeycloakRealm)
-    val keycloakClientId = userConfig.get(KeycloakClientId)
-    val keycloakAudience = userConfig.get(KeycloakAudience)
-
-    if (StringUtils.isAnyBlank(ferloadUrl, username, keycloakUrl, keycloakRealm, keycloakClientId, keycloakAudience)) {
+    if (!isValidConfiguration(userConfig)) {
       println("Configuration is missing, please fill the missing information first.")
       println()
       new CommandLine(new Configure(userConfig, appConfig, commandLine, ferload)).execute()
@@ -64,11 +57,13 @@ class Download(userConfig: UserConfig,
         extractManifestContent
       }
 
-      if (!keycloak.isValidToken(token)) {
+      val authMethod = userConfig.get(Method)
+      var token = userConfig.get(Token)
+      if (KeycloakClient.AUTH_METHOD_PASSWORD == authMethod && !keycloak.isValidToken(token)) {
         val passwordStr = password.orElseGet(() => readLine("-p", "", password = true))
         println()
         token = CommandBlock("Retrieve user credentials", successEmoji, padding) {
-          val newToken = keycloak.getUserCredentials(username, passwordStr)
+          val newToken = keycloak.getUserCredentials(userConfig.get(Username), passwordStr)
           userConfig.set(Token, newToken)
           userConfig.save()
           newToken
@@ -184,4 +179,23 @@ class Download(userConfig: UserConfig,
   case class ManifestContent(urls: String, totalSize: scala.Option[Long])
 
   override def getExitCode: Int = 1
+
+  private def isValidConfiguration(userConfig: UserConfig): Boolean = {
+    val ferloadUrl = userConfig.get(FerloadUrl)
+    val method = userConfig.get(Method)
+    if (KeycloakClient.AUTH_METHOD_PASSWORD == method) {
+      val username = userConfig.get(Username)
+      val keycloakUrl = userConfig.get(KeycloakUrl)
+      val keycloakRealm = userConfig.get(KeycloakRealm)
+      val keycloakClientId = userConfig.get(KeycloakClientId)
+      val keycloakAudience = userConfig.get(KeycloakAudience)
+      return StringUtils.isNoneBlank(ferloadUrl, username, keycloakUrl, keycloakRealm, keycloakClientId, keycloakAudience)
+    } else if (KeycloakClient.AUTH_METHOD_TOKEN == method) {
+      val token = userConfig.get(Token)
+      StringUtils.isNoneBlank(ferloadUrl, token)
+    } else {
+      return false; // method is null ?
+    }
+    true
+  }
 }

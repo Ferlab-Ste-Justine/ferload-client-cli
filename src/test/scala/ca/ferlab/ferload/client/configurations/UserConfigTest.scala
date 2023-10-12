@@ -3,12 +3,12 @@ package ca.ferlab.ferload.client.configurations
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.io.FileInputStream
+import java.io.{File, FileInputStream}
 import java.util.Properties
 
 class UserConfigTest extends AnyFunSuite with BeforeAndAfter {
 
-  val path: String = "/tmp/.ferload-client.properties"
+  val path: String = File.createTempFile(".ferload-client", ".properties").getAbsolutePath
   val userConfig = new UserConfig(path)
 
   before {

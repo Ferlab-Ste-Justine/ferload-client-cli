@@ -9,11 +9,12 @@ import org.scalatest.funsuite.AnyFunSuite
 import picocli.CommandLine
 
 import java.io.File
+import java.util
 
 class DownloadTest extends AnyFunSuite with BeforeAndAfter {
 
   val appTestConfig: Config = ConfigFactory.load.getObject("ferload-client").toConfig
-  val path: String = "/tmp/.ferload-client.properties"
+  val path: String = File.createTempFile(".ferload-client", ".properties").getAbsolutePath
   val mockUserConfig = new UserConfig(path)
   val manifestEmptyFile: String = this.getClass.getClassLoader.getResource("manifest-empty.tsv").getFile
   val manifestValidFile: String = this.getClass.getClassLoader.getResource("manifest-valid.tsv").getFile
@@ -69,12 +70,13 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
       Map("f1" -> "link1", "f2" -> "link2", "f2" -> "link2")
     }
 
-    override def getConfig: JSONObject = ???
+    override def getConfig: JSONObject = mockFerloadConfigPassword
   }
 
   before {
     mockUserConfig.clear()
     mockUserConfig.set(FerloadUrl, "foo")
+    mockUserConfig.set(Method, "password")
     mockUserConfig.set(Username, "foo")
     mockUserConfig.set(Token, "token")
     mockUserConfig.set(KeycloakUrl, "foo")
@@ -85,7 +87,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
 
   test("run configure first") {
     mockUserConfig.clear()
-    new Download(mockUserConfig, appTestConfig, mockCommandLineInf, null, null, null).run()
+    new Download(mockUserConfig, appTestConfig, mockCommandLineInf, null, mockFerload, null).run()
     assert(mockUserConfig.get(Username).equals("foo")) // at least one value is set
   }
 
