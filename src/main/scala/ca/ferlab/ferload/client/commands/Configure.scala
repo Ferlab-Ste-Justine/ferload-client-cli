@@ -17,7 +17,7 @@ class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommand
   @Option(names = Array("-f", "--ferload-url"), description = Array("Ferload url"))
   var ferloadUrl: Optional[String] = Optional.empty
 
-  @Option(names = Array("-u", "--username"), description = Array("username"))
+  @Option(names = Array("-u", "--username"), description = Array("username"), hidden = true)
   var username: Optional[String] = Optional.empty
 
   @Option(names = Array("-r", "--reset"), description = Array("Reset configuration (default: ${DEFAULT-VALUE})"))

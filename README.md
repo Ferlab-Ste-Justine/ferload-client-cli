@@ -68,15 +68,12 @@ Usage: ferload-client configure [-hrV] [-f=<ferloadUrl>] [-u=<username>]
                   Ferload url
   -h, --help      Show this help message and exit.
   -r, --reset     Reset configuration (default: false)
-  -u, --username=<username>
-                  username
   -V, --version   Print version information and exit.
 ```
 
 All the params are optional if not provided user will access interactive prompts.
 
-### Example
-
+### Example (username / password)
 ```
 user@localhost:~$ ./ferload-client configure
 
@@ -91,7 +88,26 @@ username                                    [user1]:
 Retrieve Ferload configuration ✅
 
 Configuration has been successfully updated ✅
+```
+### Example (off-line token)
+```
+user@localhost:~$ ./ferload-client configure
 
+Welcome to Ferload Client, this tools will download
+the files based on the provided manifest.
+
+Press 'enter' to keep the existing configuration [current].
+
+Ferload url                 [http://localhost:9090]: 
+
+Retrieve Ferload configuration ✅
+
+Extract authentication method ✅
+
+Please follow that link to get your token https://somewhere-generate-user-token/
+Paste token here                                   : aaa.bbb.ccc
+
+Configuration has been successfully updated ✅
 ```
 
 *Note: configure will display current existing configuration values, user doesn't have to re-write them again, just press 'enter' if the value didn't changed*
@@ -108,8 +124,6 @@ Download files based on provided manifest.
                   manifest file location (default: manifest.tsv)
   -o, --output-dir=<outputDir>
                   downloads location (default: .)
-  -p, --password=<password>
-                  password
   -V, --version   Print version information and exit.
 ```
 

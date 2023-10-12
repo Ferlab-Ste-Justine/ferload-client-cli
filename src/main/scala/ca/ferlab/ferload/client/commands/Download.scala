@@ -30,7 +30,7 @@ class Download(userConfig: UserConfig,
   @Option(names = Array("-o", "--output-dir"), description = Array("downloads location (default: ${DEFAULT-VALUE})"))
   var outputDir: File = new File(".")
 
-  @Option(names = Array("-p", "--password"), description = Array("password"))
+  @Option(names = Array("-p", "--password"), description = Array("password"), hidden = true)
   var password: Optional[String] = Optional.empty
   
   private val NO_SIZE = 0L;
