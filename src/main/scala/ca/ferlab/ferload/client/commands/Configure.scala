@@ -66,6 +66,8 @@ class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommand
 
     } else if (KeycloakClient.AUTH_METHOD_TOKEN == method) {
       val tokenConfig = config.getJSONObject("tokenConfig")
+      userConfig.set(TokenClientId, tokenConfig.getString("client-id"))
+      userConfig.set(TokenRealm, tokenConfig.getString("realm"))
       userConfig.set(TokenLink, tokenConfig.getString("link"))
       userConfig.set(TokenHelper, tokenConfig.getString("helper"))
 

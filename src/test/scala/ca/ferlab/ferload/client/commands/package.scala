@@ -35,6 +35,8 @@ package object commands {
     new JSONObject()
       .put("method", "token")
       .put("tokenConfig", new JSONObject()
+        .put("realm", "abc")
+        .put("client-id", "123")
         .put("link", "link_to_token")
         .put("helper", "helper_text"))
   }

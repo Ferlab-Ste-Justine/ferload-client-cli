@@ -59,18 +59,24 @@ class Download(userConfig: UserConfig,
 
       val authMethod = userConfig.get(Method)
       var token = userConfig.get(Token)
-      if (KeycloakClient.AUTH_METHOD_PASSWORD == authMethod && !keycloak.isValidToken(token)) {
-        val passwordStr = password.orElseGet(() => readLine("-p", "", password = true))
-        println()
-        token = CommandBlock("Retrieve user credentials", successEmoji, padding) {
-          val newToken = keycloak.getUserCredentials(userConfig.get(Username), passwordStr)
-          userConfig.set(Token, newToken)
-          userConfig.save()
-          newToken
+      if (KeycloakClient.AUTH_METHOD_PASSWORD == authMethod) {
+        if (!keycloak.isValidToken(token)) {
+          val passwordStr = password.orElseGet(() => readLine("-p", "", password = true))
+          println()
+          token = CommandBlock("Retrieve user credentials", successEmoji, padding) {
+            val newToken = keycloak.getUserCredentials(userConfig.get(Username), passwordStr)
+            userConfig.set(Token, newToken)
+            userConfig.save()
+            newToken
+          }
+        } else {
+          CommandBlock("Re-use user credentials", successEmoji, padding) {
+            ""
+          }
         }
-      } else {
-        CommandBlock("Re-use user credentials", successEmoji, padding) {
-          ""
+      } else if (KeycloakClient.AUTH_METHOD_TOKEN == authMethod) {
+        CommandBlock("Retrieve user credentials", successEmoji, padding) {
+          // TODO refresh to access token
         }
       }
 
@@ -192,7 +198,9 @@ class Download(userConfig: UserConfig,
       return StringUtils.isNoneBlank(ferloadUrl, username, keycloakUrl, keycloakRealm, keycloakClientId, keycloakAudience)
     } else if (KeycloakClient.AUTH_METHOD_TOKEN == method) {
       val token = userConfig.get(Token)
-      StringUtils.isNoneBlank(ferloadUrl, token)
+      val clientId = userConfig.get(TokenClientId)
+      val realm = userConfig.get(TokenRealm)
+      StringUtils.isNoneBlank(ferloadUrl, token, clientId, realm)
     } else {
       return false; // method is null ?
     }
