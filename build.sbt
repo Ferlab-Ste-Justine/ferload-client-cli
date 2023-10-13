@@ -11,7 +11,6 @@ Test / parallelExecution := false
 
 libraryDependencies += "info.picocli" % "picocli" % "4.6.1"
 libraryDependencies += "com.typesafe" % "config" % "1.4.1"
-libraryDependencies += "org.keycloak" % "keycloak-authz-client" % "17.0.1"
 libraryDependencies += "org.apache.httpcomponents" % "httpclient" % "4.5.13"
 libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.12.0"
 libraryDependencies += "org.apache.commons" % "commons-csv" % "1.8"

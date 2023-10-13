@@ -9,7 +9,7 @@ import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import picocli.CommandLine
-import picocli.CommandLine.{Command, IExitCodeGenerator, Option, usage}
+import picocli.CommandLine.{Command, IExitCodeGenerator, Option}
 
 import java.io.{File, FileReader}
 import java.util.Optional
@@ -64,7 +64,7 @@ class Download(userConfig: UserConfig,
           val passwordStr = password.orElseGet(() => readLine("-p", "", password = true))
           println()
           token = CommandBlock("Retrieve user credentials", successEmoji, padding) {
-            val newToken = keycloak.getUserCredentials(userConfig.get(Username), passwordStr)
+            val newToken = keycloak.getUserCredentials(userConfig.get(Username), passwordStr, null)
             userConfig.set(Token, newToken)
             userConfig.save()
             newToken
@@ -75,8 +75,8 @@ class Download(userConfig: UserConfig,
           }
         }
       } else if (KeycloakClient.AUTH_METHOD_TOKEN == authMethod) {
-        CommandBlock("Retrieve user credentials", successEmoji, padding) {
-          // TODO refresh to access token
+        token = CommandBlock("Retrieve user credentials", successEmoji, padding) {
+          keycloak.getUserCredentials(null, null, userConfig.get(Token))
         }
       }
 
@@ -195,15 +195,14 @@ class Download(userConfig: UserConfig,
       val keycloakRealm = userConfig.get(KeycloakRealm)
       val keycloakClientId = userConfig.get(KeycloakClientId)
       val keycloakAudience = userConfig.get(KeycloakAudience)
-      return StringUtils.isNoneBlank(ferloadUrl, username, keycloakUrl, keycloakRealm, keycloakClientId, keycloakAudience)
+      StringUtils.isNoneBlank(ferloadUrl, username, keycloakUrl, keycloakRealm, keycloakClientId, keycloakAudience)
     } else if (KeycloakClient.AUTH_METHOD_TOKEN == method) {
       val token = userConfig.get(Token)
       val clientId = userConfig.get(TokenClientId)
       val realm = userConfig.get(TokenRealm)
       StringUtils.isNoneBlank(ferloadUrl, token, clientId, realm)
     } else {
-      return false; // method is null ?
+      false; // method is null ?
     }
-    true
   }
 }

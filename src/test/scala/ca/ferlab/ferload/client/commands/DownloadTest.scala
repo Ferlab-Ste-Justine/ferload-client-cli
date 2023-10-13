@@ -49,7 +49,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   }
 
   val mockKeycloakInf: IKeycloak = new IKeycloak {
-    override def getUserCredentials(username: String, password: String): String = {
+    override def getUserCredentials(username: String, password: String, refreshToken: String): String = {
       assert(username.equals("foo"))
       assert(password.equals("bar"))
       "token"
@@ -59,7 +59,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   }
 
   val mockKeycloakValidTokenInf: IKeycloak = new IKeycloak {
-    override def getUserCredentials(username: String, password: String): String = ???
+    override def getUserCredentials(username: String, password: String, refreshToken: String): String = ???
 
     override def isValidToken(token: String): Boolean = true
   }

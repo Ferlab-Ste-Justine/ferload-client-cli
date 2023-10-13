@@ -3,7 +3,7 @@ package ca.ferlab.ferload.client.commands.factory
 import ca.ferlab.ferload.client.clients.inf.ICommandLine
 import com.typesafe.config.Config
 import org.apache.commons.lang3.StringUtils
-import picocli.CommandLine.Model.{CommandSpec, OptionSpec}
+import picocli.CommandLine.Model.CommandSpec
 import picocli.CommandLine.Spec
 
 class BaseCommand(appConfig: Config, commandLine: ICommandLine) {
