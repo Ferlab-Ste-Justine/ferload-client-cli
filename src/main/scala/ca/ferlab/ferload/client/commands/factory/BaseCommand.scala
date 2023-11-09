@@ -14,13 +14,13 @@ class BaseCommand(appConfig: Config, commandLine: ICommandLine) {
 
   def printIntroduction(): Unit = {
     println(
-      s"""Welcome to Ferload Client, this tools will download
-the files based on the provided manifest.""")
+      s"""Welcome to Ferload Client! This command-line tool is designed to simplify
+the process of downloading files by utilizing a provided manifest.""".stripMargin)
     println()
   }
 
   protected def readLine(optionName: String, currentValue: String, password: Boolean = false): String = {
-    val optionDesc = scala.Option(spec).map(_.optionsMap.get(optionName).description.mkString).getOrElse(optionName)
+    val optionDesc = scala.Option(spec).map(s => Option(s.optionsMap.get(optionName)).map(_.description.mkString).getOrElse(optionName)).getOrElse(optionName)
     val fmt = formatFmt(optionDesc, currentValue, password)
     val line: String = if (password) commandLine.readPassword(fmt) else commandLine.readLine(fmt)
     scala.Option(line).filter(StringUtils.isNotBlank).getOrElse(currentValue)

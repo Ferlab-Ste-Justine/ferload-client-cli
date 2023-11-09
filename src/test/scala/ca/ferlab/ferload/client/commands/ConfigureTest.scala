@@ -30,15 +30,33 @@ class ConfigureTest extends AnyFunSuite with BeforeAndAfter {
     override def readPassword(fmt: String): String = ???
   }
 
-  val mockFerloadInf: IFerload = new IFerload {
-    override def getConfig: JSONObject = {
-      val config = new util.HashMap[String, String]()
-      config.put("url", "http://keycloak")
-      config.put("realm", "abc")
-      config.put("client-id", "123")
-      config.put("audience", "456")
-      new JSONObject().put("keycloak", new JSONObject(config))
+  val mockCommandLineTokenInf: ICommandLine = new ICommandLine {
+    override def readLine(fmt: String): String = {
+      val mock = fmt.trim match {
+        case "Ferload url" => "http://ferload"
+        case "Paste token here" => "aaa.bbb.ccc"
+        case _ => fail(s"$fmt isn't mocked")
+      }
+      mock
     }
+
+    override def readPassword(fmt: String): String = ???
+  }
+
+  val mockFerloadInf: IFerload = new IFerload {
+    override def getConfig: JSONObject = mockFerloadConfigPassword
+
+    override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = ???
+  }
+
+  val mockFerloadTokenInf: IFerload = new IFerload {
+    override def getConfig: JSONObject = mockFerloadConfigToken
+
+    override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = ???
+  }
+
+  val mockFerloadUnkownMethodInf: IFerload = new IFerload {
+    override def getConfig: JSONObject = new JSONObject().put("method", "foo")
 
     override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = ???
   }
@@ -47,15 +65,28 @@ class ConfigureTest extends AnyFunSuite with BeforeAndAfter {
     mockUserConfig.clear()
   }
 
-  test("config has been updated") {
+  test("config has been updated (method = password)") {
     new CommandLine(new Configure(mockUserConfig, appTestConfig, mockCommandLineInf, mockFerloadInf)).execute()
     assert(mockUserConfig.get(FerloadUrl).equals("http://ferload"))
+    assert(mockUserConfig.get(Method).equals("password"))
     assert(mockUserConfig.get(Username).equals("foo"))
     assert(mockUserConfig.get(Token) == null)
     assert(mockUserConfig.get(KeycloakUrl).equals("http://keycloak"))
     assert(mockUserConfig.get(KeycloakRealm).equals("abc"))
     assert(mockUserConfig.get(KeycloakClientId).equals("123"))
     assert(mockUserConfig.get(KeycloakAudience).equals("456"))
+  }
+
+  test("config has been updated (method = token)") {
+    new CommandLine(new Configure(mockUserConfig, appTestConfig, mockCommandLineTokenInf, mockFerloadTokenInf)).execute()
+    assert(mockUserConfig.get(FerloadUrl).equals("http://ferload"))
+    assert(mockUserConfig.get(Method).equals("token"))
+    assert(mockUserConfig.get(Token) == "aaa.bbb.ccc")
+  }
+
+  test("unknown auth method") {
+    val cmd = new CommandLine(new Configure(mockUserConfig, appTestConfig, mockCommandLineTokenInf, mockFerloadUnkownMethodInf))
+    assertCommandException(cmd, "Unknown authentication method: foo")
   }
 
   test("existing config has been updated") {

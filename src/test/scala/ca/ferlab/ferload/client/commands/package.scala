@@ -1,7 +1,10 @@
 package ca.ferlab.ferload.client
 
+import org.json.JSONObject
 import picocli.CommandLine
 import picocli.CommandLine.IExecutionExceptionHandler
+
+import java.util
 
 package object commands {
 
@@ -16,5 +19,25 @@ package object commands {
     })
     commandLine.execute(args: _*)
     assert(exceptionOccurred)
+  }
+
+  val mockFerloadConfigPassword: JSONObject = {
+    val config = new util.HashMap[String, String]()
+    config.put("url", "http://keycloak")
+    config.put("realm", "abc")
+    config.put("client-id", "123")
+    config.put("audience", "456")
+    new JSONObject()
+      .put("keycloak", new JSONObject(config))
+  }
+
+  val mockFerloadConfigToken: JSONObject = {
+    new JSONObject()
+      .put("method", "token")
+      .put("tokenConfig", new JSONObject()
+        .put("realm", "abc")
+        .put("client-id", "123")
+        .put("link", "link_to_token")
+        .put("helper", "helper_text"))
   }
 }

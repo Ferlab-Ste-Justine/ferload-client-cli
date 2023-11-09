@@ -1,5 +1,6 @@
 package ca.ferlab.ferload.client.commands
 
+import ca.ferlab.ferload.client.clients.KeycloakClient
 import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak, IS3}
 import ca.ferlab.ferload.client.commands.factory.{BaseCommand, CommandBlock}
 import ca.ferlab.ferload.client.configurations._
@@ -29,22 +30,14 @@ class Download(userConfig: UserConfig,
   @Option(names = Array("-o", "--output-dir"), description = Array("downloads location (default: ${DEFAULT-VALUE})"))
   var outputDir: File = new File(".")
 
-  @Option(names = Array("-p", "--password"), description = Array("password"))
+  @Option(names = Array("-p", "--password"), description = Array("password"), hidden = true)
   var password: Optional[String] = Optional.empty
   
   private val NO_SIZE = 0L;
 
   override def run(): Unit = {
 
-    val ferloadUrl = userConfig.get(FerloadUrl)
-    val username = userConfig.get(Username)
-    var token = userConfig.get(Token)
-    val keycloakUrl = userConfig.get(KeycloakUrl)
-    val keycloakRealm = userConfig.get(KeycloakRealm)
-    val keycloakClientId = userConfig.get(KeycloakClientId)
-    val keycloakAudience = userConfig.get(KeycloakAudience)
-
-    if (StringUtils.isAnyBlank(ferloadUrl, username, keycloakUrl, keycloakRealm, keycloakClientId, keycloakAudience)) {
+    if (!isValidConfiguration(userConfig)) {
       println("Configuration is missing, please fill the missing information first.")
       println()
       new CommandLine(new Configure(userConfig, appConfig, commandLine, ferload)).execute()
@@ -64,18 +57,26 @@ class Download(userConfig: UserConfig,
         extractManifestContent
       }
 
-      if (!keycloak.isValidToken(token)) {
-        val passwordStr = password.orElseGet(() => readLine("-p", "", password = true))
-        println()
-        token = CommandBlock("Retrieve user credentials", successEmoji, padding) {
-          val newToken = keycloak.getUserCredentials(username, passwordStr)
-          userConfig.set(Token, newToken)
-          userConfig.save()
-          newToken
+      val authMethod = userConfig.get(Method)
+      var token = userConfig.get(Token)
+      if (KeycloakClient.AUTH_METHOD_PASSWORD == authMethod) {
+        if (!keycloak.isValidToken(token)) {
+          val passwordStr = password.orElseGet(() => readLine("-p", "", password = true))
+          println()
+          token = CommandBlock("Retrieve user credentials", successEmoji, padding) {
+            val newToken = keycloak.getUserCredentials(userConfig.get(Username), passwordStr, null)
+            userConfig.set(Token, newToken)
+            userConfig.save()
+            newToken
+          }
+        } else {
+          CommandBlock("Re-use user credentials", successEmoji, padding) {
+            ""
+          }
         }
-      } else {
-        CommandBlock("Re-use user credentials", successEmoji, padding) {
-          ""
+      } else if (KeycloakClient.AUTH_METHOD_TOKEN == authMethod) {
+        token = CommandBlock("Retrieve user credentials", successEmoji, padding) {
+          keycloak.getUserCredentials(null, null, userConfig.get(Token))
         }
       }
 
@@ -184,4 +185,24 @@ class Download(userConfig: UserConfig,
   case class ManifestContent(urls: String, totalSize: scala.Option[Long])
 
   override def getExitCode: Int = 1
+
+  private def isValidConfiguration(userConfig: UserConfig): Boolean = {
+    val ferloadUrl = userConfig.get(FerloadUrl)
+    val method = userConfig.get(Method)
+    if (KeycloakClient.AUTH_METHOD_PASSWORD == method) {
+      val username = userConfig.get(Username)
+      val keycloakUrl = userConfig.get(KeycloakUrl)
+      val keycloakRealm = userConfig.get(KeycloakRealm)
+      val keycloakClientId = userConfig.get(KeycloakClientId)
+      val keycloakAudience = userConfig.get(KeycloakAudience)
+      StringUtils.isNoneBlank(ferloadUrl, username, keycloakUrl, keycloakRealm, keycloakClientId, keycloakAudience)
+    } else if (KeycloakClient.AUTH_METHOD_TOKEN == method) {
+      val token = userConfig.get(Token)
+      val clientId = userConfig.get(TokenClientId)
+      val realm = userConfig.get(TokenRealm)
+      StringUtils.isNoneBlank(ferloadUrl, token, clientId, realm)
+    } else {
+      false; // method is null ?
+    }
+  }
 }
