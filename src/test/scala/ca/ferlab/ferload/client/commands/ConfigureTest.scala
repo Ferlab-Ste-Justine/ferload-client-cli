@@ -43,6 +43,18 @@ class ConfigureTest extends AnyFunSuite with BeforeAndAfter {
     override def readPassword(fmt: String): String = ???
   }
 
+  val mockCommandLineDeviceInf: ICommandLine = new ICommandLine {
+    override def readLine(fmt: String): String = {
+      val mock = fmt.trim match {
+        case "Ferload url" => "http://ferload"
+        case _ => fail(s"$fmt isn't mocked")
+      }
+      mock
+    }
+
+    override def readPassword(fmt: String): String = ???
+  }
+
   val mockFerloadInf: IFerload = new IFerload {
     override def getConfig: JSONObject = mockFerloadConfigPassword
 
@@ -51,6 +63,12 @@ class ConfigureTest extends AnyFunSuite with BeforeAndAfter {
 
   val mockFerloadTokenInf: IFerload = new IFerload {
     override def getConfig: JSONObject = mockFerloadConfigToken
+
+    override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = ???
+  }
+
+  val mockFerloadDeviceInf: IFerload = new IFerload {
+    override def getConfig: JSONObject = mockFerloadConfigDevice
 
     override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = ???
   }
@@ -82,6 +100,14 @@ class ConfigureTest extends AnyFunSuite with BeforeAndAfter {
     assert(mockUserConfig.get(FerloadUrl).equals("http://ferload"))
     assert(mockUserConfig.get(Method).equals("token"))
     assert(mockUserConfig.get(Token) == "aaa.bbb.ccc")
+  }
+
+  test("config has been updated (method = device)") {
+    new CommandLine(new Configure(mockUserConfig, appTestConfig, mockCommandLineDeviceInf, mockFerloadDeviceInf)).execute()
+    assert(mockUserConfig.get(FerloadUrl).equals("http://ferload"))
+    assert(mockUserConfig.get(KeycloakRealm).equals("abc"))
+    assert(mockUserConfig.get(Method).equals("device"))
+    assert(mockUserConfig.get(KeycloakAudience).equals("456"))
   }
 
   test("unknown auth method") {

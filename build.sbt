@@ -8,6 +8,7 @@ scalaVersion := "2.13.9"
 
 // some TUs write in a common config file
 Test / parallelExecution := false
+val catsRetryVersion = "3.1.0"
 
 libraryDependencies += "info.picocli" % "picocli" % "4.6.1"
 libraryDependencies += "com.typesafe" % "config" % "1.4.1"
@@ -19,6 +20,7 @@ libraryDependencies += "org.json" % "json" % "20210307"
 libraryDependencies += "com.auth0" % "java-jwt" % "3.18.2"
 libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.12.261"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.7" % "test"
+libraryDependencies += "com.github.cb372" %% "cats-retry" % catsRetryVersion
 
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 //import sbtassembly.AssemblyPlugin.defaultShellScript

@@ -78,6 +78,18 @@ class Download(userConfig: UserConfig,
         token = CommandBlock("Retrieve user credentials", successEmoji, padding) {
           keycloak.getUserCredentials(null, null, userConfig.get(Token))
         }
+      } else if (KeycloakClient.AUTH_DEVICE == authMethod) {
+        val resp = CommandBlock("Retrieve device token", successEmoji, padding) {
+          keycloak.getDevice
+        }
+
+        token = CommandBlock("Copy/Paste this URL in your browser and login please: ", successEmoji, padding) {
+          println(resp.getString("verification_uri_complete"))
+          val newToken = keycloak.getUserDeviceToken(resp.getString("device_code"), resp.getInt("expires_in"))
+          userConfig.set(Token, newToken)
+          userConfig.save()
+          newToken
+        }
       }
 
       val links: Map[String, String] = CommandBlock("Retrieve Ferload download link(s)", successEmoji, padding) {
@@ -201,6 +213,11 @@ class Download(userConfig: UserConfig,
       val clientId = userConfig.get(TokenClientId)
       val realm = userConfig.get(TokenRealm)
       StringUtils.isNoneBlank(ferloadUrl, token, clientId, realm)
+    } else if (KeycloakClient.AUTH_DEVICE == method) {
+      val keycloakUrl = userConfig.get(KeycloakUrl)
+      val keycloakRealm = userConfig.get(KeycloakRealm)
+      val keycloakAudience = userConfig.get(KeycloakAudience)
+      StringUtils.isNoneBlank(ferloadUrl, keycloakUrl, keycloakRealm, keycloakAudience)
     } else {
       false; // method is null ?
     }
