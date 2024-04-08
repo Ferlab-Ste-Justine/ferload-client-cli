@@ -16,10 +16,11 @@ class FerloadClient(userConfig: UserConfig) extends BaseHttpClient with IFerload
   private val separator = "\n"
 
   override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = {
-    val requestUrl = new URL(url, "/downloadLinks").toString
+    val requestUrl = new URL(url, "/objects/list").toString
     val httpRequest = new HttpPost(requestUrl)
     httpRequest.addHeader(HttpHeaders.AUTHORIZATION, s"Bearer $token")
     httpRequest.addHeader(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType)
+    httpRequest.addHeader(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType)
     httpRequest.setEntity(new StringEntity(manifestContent))
     val (body, status) = executeHttpRequest(httpRequest)
     status match {

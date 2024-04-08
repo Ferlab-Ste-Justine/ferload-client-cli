@@ -56,12 +56,20 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
     }
 
     override def isValidToken(token: String): Boolean = false
+
+    override def getDevice: JSONObject = ???
+
+    override def getUserDeviceToken(deviceCode: String, expiresIn: Int): String = ???
   }
 
   val mockKeycloakValidTokenInf: IKeycloak = new IKeycloak {
     override def getUserCredentials(username: String, password: String, refreshToken: String): String = ???
 
     override def isValidToken(token: String): Boolean = true
+
+    override def getDevice: JSONObject = ???
+
+    override def getUserDeviceToken(deviceCode: String, expiresIn: Int): String = ???
   }
 
   val mockFerload: IFerload = new IFerload {
@@ -173,7 +181,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
 
       override def getTotalExpectedDownloadSize(links: Map[String, String], timeout: Long): Long = 1L
 
-      override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 2L
+      override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 3L
     }
 
     val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, mockCommandLineInfAgreed, mockKeycloakValidTokenInf, mockFerload, mockS3))

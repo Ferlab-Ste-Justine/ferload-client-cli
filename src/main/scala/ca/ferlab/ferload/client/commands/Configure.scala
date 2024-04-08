@@ -74,6 +74,11 @@ class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommand
       println(userConfig.get(TokenHelper) + " " + userConfig.get(TokenLink))
       userConfig.set(Token, readLine("Paste token here", null))
 
+    } else if (KeycloakClient.AUTH_DEVICE == method) {
+      val ferloadConfig = config.getJSONObject("keycloak")
+      userConfig.set(KeycloakUrl, ferloadConfig.getString("url"))
+      userConfig.set(KeycloakRealm, ferloadConfig.getString("realm"))
+      userConfig.set(KeycloakAudience, ferloadConfig.getString("audience"))
     } else {
       throw new IllegalStateException("Unknown authentication method: " + method)
     }

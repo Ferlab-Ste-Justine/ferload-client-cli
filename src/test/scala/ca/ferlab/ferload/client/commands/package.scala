@@ -40,4 +40,14 @@ package object commands {
         .put("link", "link_to_token")
         .put("helper", "helper_text"))
   }
+
+  val mockFerloadConfigDevice: JSONObject = {
+    new JSONObject()
+      .put("method", "device")
+      .put("keycloak", new JSONObject()
+        .put("url", "http://keycloak")
+        .put("realm", "abc")
+        .put("audience", "456")
+        .put("device-client", "789"))
+  }
 }

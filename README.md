@@ -165,6 +165,33 @@ Total downloaded files: 12 located here: ./data
 
 ```
 
+### Example (download with device token)
+```
+user@localhost:~$ ./ferload-client download -m ./data/m1.tsv -o ./data
+
+Welcome to Ferload Client, this tools will download
+the files based on the provided manifest.
+
+Checking manifest file                             ✅
+
+Retrieve device token                              ✅
+
+Copy/Paste this URL in your browser and login please: http://localhost:32771/realms/CQDG/device?user_code=NNLJ-AOOQ
+ ✅ 
+
+Retrieve Ferload download link(s)                  ✅
+
+Compute total average expected download size       ✅
+
+The total average expected download size will be 76 MB do you want to continue (your available disk space is: 60 GB) ? [yes]: yes
+
+FIL0000001  [##################################################]     76 /     76 MB (100%) 📦
+FIL0000002  [##################################################]     76 /     76 MB (100%) 📦
+
+Total downloaded files: 12 located here: ./data
+
+```
+
 *Note: in case the tool can't compute the total average expected download size, the following message will be displayed:*
 ```
 Failed to compute total average expected download size, reason: Future timed out after [60 seconds]
