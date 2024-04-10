@@ -115,7 +115,7 @@ class Download(userConfig: UserConfig,
         s"$totalExpectedDownloadSizeStr do you want to continue (your available disk space is: $usableSPaceStr) ? [$downloadAgreement]")
       println()
 
-      if (agreedToDownload.equals(downloadAgreement) || StringUtils.isBlank(agreedToDownload)) {
+      if (downloadAgreement.startsWith(agreedToDownload) || StringUtils.isBlank(agreedToDownload)) {
 
         if (usableSpace < totalExpectedDownloadSize) {
           throw new IllegalStateException(s"Not enough disk space available $usableSpace < $totalExpectedDownloadSize")
@@ -127,6 +127,8 @@ class Download(userConfig: UserConfig,
 
         println(s"Total downloaded files: ${files.size} located here: ${outputDir.getAbsolutePath}")
         println()
+      } else {
+        throw new IllegalStateException(s"Aborted by user")
       }
     }
   }
