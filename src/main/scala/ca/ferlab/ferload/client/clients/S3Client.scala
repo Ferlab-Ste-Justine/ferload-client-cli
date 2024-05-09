@@ -1,5 +1,6 @@
 package ca.ferlab.ferload.client.clients
 
+import ca.ferlab.ferload.client.LineContent
 import ca.ferlab.ferload.client.clients.inf.IS3
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
@@ -36,11 +37,12 @@ class S3Client(nThreads: Int = 1) extends IS3 {
     Await.result(sizes, Duration(timeout, SECONDS)).sum
   }
 
-  override def download(outputDir: File, links: Map[String, String]): Set[File] = {
+  override def download(outputDir: File, links: Map[LineContent, String]): Set[File] = {
     // find the file with the biggest name
-    val padding = links.keysIterator.reduceLeft((l,r) => if (l.length > r.length) l else r).length + 1
-    val downloads = Future.traverse(links.keySet)(fileName => {
-      val link = links(fileName)
+    val padding = links.keysIterator.reduceLeft((l,r) => if (l.filePointer.length > r.filePointer.length) l else r).filePointer.length + 1
+    val downloads = Future.traverse(links.keySet)(lineContent => {
+      val link = links(lineContent)
+      val fileName = lineContent.fileName.getOrElse(lineContent.filePointer)
       Future(download(outputDir, fileName, link, padding))
     })
     Await.result(downloads, Duration.Inf)

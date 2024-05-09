@@ -76,9 +76,18 @@ class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommand
 
     } else if (KeycloakClient.AUTH_DEVICE == method) {
       val ferloadConfig = config.getJSONObject("keycloak")
+//      val clientConfig = if config.has("clientConfig") {Some(config.getJSONObject("clientConfig"))} else None //.getJSONObject("clientConfig")
+      val clientConfig = if (config.has("clientConfig")) {
+        Some(config.getJSONObject("clientConfig"))
+      } else {
+        None
+      }
       userConfig.set(KeycloakUrl, ferloadConfig.getString("url"))
       userConfig.set(KeycloakRealm, ferloadConfig.getString("realm"))
       userConfig.set(KeycloakAudience, ferloadConfig.getString("audience"))
+//      userConfig.set(ClientManifestFilePointer, clientConfig.getString("manifest-file-pointer"))
+//      userConfig.set(ClientManifestFileName, clientConfig.getString("manifest-filename"))
+//      userConfig.set(ClientManifestFileSize, clientConfig.getString("manifest-size"))
     } else {
       throw new IllegalStateException("Unknown authentication method: " + method)
     }
