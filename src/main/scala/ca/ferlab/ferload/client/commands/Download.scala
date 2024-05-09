@@ -171,7 +171,7 @@ class Download(userConfig: UserConfig,
 
   private def extractManifestContent: ManifestContent = {
     val manifestFilePointer = scala.Option(userConfig.get(ClientManifestFilePointer)).getOrElse(appConfig.getString("manifest-file-pointer"))
-    val manifestFileName = scala.Option(userConfig.get(ClientManifestFileName)).getOrElse(appConfig.getString("manifest-filename"))
+    val manifestFileName = scala.Option(userConfig.get(ClientManifestFileName))
     val manifestSize = scala.Option(userConfig.get(ClientManifestFileSize)).getOrElse(appConfig.getString("manifest-size"))
     val manifestSeparator = appConfig.getString("manifest-separator").charAt(0)
 
@@ -187,7 +187,7 @@ class Download(userConfig: UserConfig,
         .withFirstRecordAsHeader()
         .parse(reader)
       val fileIdColumnIndex = parser.getHeaderMap.getOrDefault(manifestFilePointer, -1)
-      val fileDisplayNameColumnIndex = parser.getHeaderMap.getOrDefault(manifestFileName, -1)
+      val fileDisplayNameColumnIndex = manifestFileName.map(displayCol => parser.getHeaderMap.getOrDefault(displayCol, -1)).map(_.toInt)
       val sizeColumnIndex = parser.getHeaderMap.getOrDefault(manifestSize, -1)
 
       if (fileIdColumnIndex == -1) {
@@ -195,7 +195,7 @@ class Download(userConfig: UserConfig,
       }
 
       val lines = parser.getRecords.stream().map(record => {
-          parseCVSRecord(record)(fileIdColumnIndex, fileDisplayNameColumnIndex, sizeColumnIndex)
+          parseCVSRecord(record)(fileIdColumnIndex, fileDisplayNameColumnIndex.getOrElse(-1), sizeColumnIndex)
         })
         .collect(toList[scala.Option[LineContent]])
         .asScala.toSeq.flatten
