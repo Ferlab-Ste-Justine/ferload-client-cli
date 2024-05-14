@@ -2,9 +2,9 @@ name: build and test
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, clin-v1.4.x ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, clin-v1.4.x ]
 
 jobs:
   build_and_test:

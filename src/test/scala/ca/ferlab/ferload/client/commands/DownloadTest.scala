@@ -42,6 +42,13 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
 
     override def readPassword(fmt: String): String = "bar"
   }
+
+  val mockCommandLineInfAgreedSimple: ICommandLine = new ICommandLine {
+    override def readLine(fmt: String): String = "y"
+
+    override def readPassword(fmt: String): String = "bar"
+  }
+
   val mockCommandLineInfNotAgreed: ICommandLine = new ICommandLine {
     override def readLine(fmt: String): String = "no"
 
@@ -151,7 +158,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
     }
 
     val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, mockCommandLineInfNotAgreed, mockKeycloakInf, mockFerload, mockS3))
-    assert(cmd.execute("-m", manifestValidFile) == 1)
+    assertCommandException(cmd, "Aborted by user", "-m", manifestValidFile)
   }
 
   test("not enough disk space") {
@@ -185,6 +192,23 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
     }
 
     val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, mockCommandLineInfAgreed, mockKeycloakValidTokenInf, mockFerload, mockS3))
+    assert(cmd.execute("-m", manifestValidFile) == 1)
+  }
+
+  test("confirm download simplified") {
+
+    val mockS3: IS3 = new IS3 {
+      override def download(outputDir: File, links: Map[String, String]): Set[File] = {
+        assert(links.size == 2)
+        Set(new File("f1"), new File("f2"))
+      }
+
+      override def getTotalExpectedDownloadSize(links: Map[String, String], timeout: Long): Long = 1L
+
+      override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 2L
+    }
+
+    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, mockCommandLineInfAgreedSimple, mockKeycloakValidTokenInf, mockFerload, mockS3))
     assert(cmd.execute("-m", manifestValidFile) == 1)
   }
 
