@@ -6,3 +6,4 @@ src/test/resources/tsv/output
 .bsp
 .attach_pid*
 data/
+*.tsv
