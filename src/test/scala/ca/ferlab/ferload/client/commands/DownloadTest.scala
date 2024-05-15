@@ -199,7 +199,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   test("confirm download simplified") {
 
     val mockS3: IS3 = new IS3 {
-      override def download(outputDir: File, links: Map[String, String]): Set[File] = {
+      override def download(outputDir: File, links: Map[LineContent, String]): Set[File] = {
         assert(links.size == 2)
         Set(new File("f1"), new File("f2"))
       }
