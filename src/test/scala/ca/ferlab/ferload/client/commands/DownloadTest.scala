@@ -1,5 +1,6 @@
 package ca.ferlab.ferload.client.commands
 
+import ca.ferlab.ferload.client.{LineContent, ManifestContent}
 import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak, IS3}
 import ca.ferlab.ferload.client.configurations._
 import com.typesafe.config.{Config, ConfigFactory}
@@ -80,9 +81,9 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   }
 
   val mockFerload: IFerload = new IFerload {
-    override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = {
+    override def getDownloadLinks(token: String, manifestContent: ManifestContent): Map[LineContent, String] = {
       assert(token.equals("token"))
-      Map("f1" -> "link1", "f2" -> "link2", "f2" -> "link2")
+      Map(LineContent(filePointer = "f1") -> "link1", LineContent(filePointer = "f2") -> "link2", LineContent(filePointer = "f3") -> "link3")
     }
 
     override def getConfig: JSONObject = mockFerloadConfigPassword
@@ -130,7 +131,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   test("call keycloak / ferload") {
 
     val mockS3: IS3 = new IS3 {
-      override def download(outputDir: File, links: Map[String, String]): Set[File] = {
+      override def download(outputDir: File, links: Map[LineContent, String]): Set[File] = {
         assert(links.size == 2)
         Set(new File("f1"), new File("f2"))
       }
@@ -147,7 +148,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   test("did not agreed to download") {
 
     val mockS3: IS3 = new IS3 {
-      override def download(outputDir: File, links: Map[String, String]): Set[File] = {
+      override def download(outputDir: File, links: Map[LineContent, String]): Set[File] = {
         assert(links.size == 2)
         Set(new File("f1"), new File("f2"))
       }
@@ -164,7 +165,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   test("not enough disk space") {
 
     val mockS3: IS3 = new IS3 {
-      override def download(outputDir: File, links: Map[String, String]): Set[File] = {
+      override def download(outputDir: File, links: Map[LineContent, String]): Set[File] = {
         assert(links.size == 2)
         Set(new File("f1"), new File("f2"))
       }
@@ -181,7 +182,7 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   test("stored token is valid") {
 
     val mockS3: IS3 = new IS3 {
-      override def download(outputDir: File, links: Map[String, String]): Set[File] = {
+      override def download(outputDir: File, links: Map[LineContent, String]): Set[File] = {
         assert(links.size == 2)
         Set(new File("f1"), new File("f2"))
       }

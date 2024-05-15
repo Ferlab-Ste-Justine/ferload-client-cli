@@ -1,5 +1,6 @@
 package ca.ferlab.ferload.client.clients
 
+import ca.ferlab.ferload.client.LineContent
 import org.apache.http.HttpResponse
 import org.apache.http.client.methods.HttpRequestBase
 import org.apache.http.impl.client.{CloseableHttpClient, HttpClientBuilder}
@@ -29,7 +30,9 @@ abstract class BaseHttpClient {
     s"$message, code: $status, message:\n${body.getOrElse("")}"
   }
 
-  protected def toMap(body: Option[String]): Map[String, String] = {
-    body.map(new JSONObject(_).toMap.asScala.map({ case (key, value) => (key, value.toString) }).toMap).getOrElse(Map())
+  protected def toMap(body: Option[String], lineContents: Seq[LineContent]): Map[LineContent, String] = {
+    body.map(new JSONObject(_).toMap.asScala.map({ case (key, value) =>
+      lineContents.find(_.filePointer == key).get -> value.toString
+    }).toMap).getOrElse(Map())
   }
 }

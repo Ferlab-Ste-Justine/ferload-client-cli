@@ -25,3 +25,9 @@ case object TokenClientId extends UserConfigName("token-client-id")
 case object TokenLink extends UserConfigName("token-link")
 
 case object TokenHelper extends UserConfigName("token-helper")
+
+case object ClientManifestFilePointer extends UserConfigName("client-config-manifest-file-pointer")
+
+case object ClientManifestFileName extends UserConfigName("client-config-manifest-filename")
+
+case object ClientManifestFileSize extends UserConfigName("client-config-manifest-size")

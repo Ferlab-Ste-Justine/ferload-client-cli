@@ -1,5 +1,7 @@
 package ca.ferlab.ferload.client.clients.inf
 
+import ca.ferlab.ferload.client.LineContent
+
 import java.io.File
 
 trait IS3 {
@@ -7,5 +9,5 @@ trait IS3 {
 
   def getTotalExpectedDownloadSize(links: Map[String, String], timeout: Long): Long
 
-  def download(outputDir: File, links: Map[String, String]): Set[File]
+  def download(outputDir: File, links: Map[LineContent, String]): Set[File]
 }

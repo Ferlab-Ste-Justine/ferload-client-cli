@@ -1,5 +1,6 @@
 package ca.ferlab.ferload.client.clients
 
+import ca.ferlab.ferload.client.{LineContent, ManifestContent}
 import ca.ferlab.ferload.client.clients.inf.IFerload
 import ca.ferlab.ferload.client.configurations.{FerloadUrl, UserConfig}
 import org.apache.http.HttpHeaders
@@ -15,16 +16,17 @@ class FerloadClient(userConfig: UserConfig) extends BaseHttpClient with IFerload
   lazy val url = new URL(userConfig.get(FerloadUrl))
   private val separator = "\n"
 
-  override def getDownloadLinks(token: String, manifestContent: String): Map[String, String] = {
+  override def getDownloadLinks(token: String, manifestContent: ManifestContent): Map[LineContent, String] = {
     val requestUrl = new URL(url, "/objects/list").toString
     val httpRequest = new HttpPost(requestUrl)
     httpRequest.addHeader(HttpHeaders.AUTHORIZATION, s"Bearer $token")
     httpRequest.addHeader(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType)
     httpRequest.addHeader(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType)
-    httpRequest.setEntity(new StringEntity(manifestContent))
+    val linesAsString = manifestContent.lines.map(_.filePointer).mkString(separator)
+    httpRequest.setEntity(new StringEntity(linesAsString))
     val (body, status) = executeHttpRequest(httpRequest)
     status match {
-      case 200 => toMap(body)
+      case 200 => toMap(body, manifestContent.lines)
       case 403 => throw new IllegalStateException(formatExceptionMessage("No enough access rights to download the following files", status, body))
       case _ => throw new IllegalStateException(formatExceptionMessage("Failed to retrieve download link(s)", status, body))
     }

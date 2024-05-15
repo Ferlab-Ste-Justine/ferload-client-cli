@@ -4,8 +4,9 @@ import ca.ferlab.ferload.client.clients.KeycloakClient
 import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak, IS3}
 import ca.ferlab.ferload.client.commands.factory.{BaseCommand, CommandBlock}
 import ca.ferlab.ferload.client.configurations._
+import ca.ferlab.ferload.client.{LineContent, ManifestContent, OpsNum}
 import com.typesafe.config.Config
-import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.{CSVFormat, CSVRecord}
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import picocli.CommandLine
@@ -13,7 +14,8 @@ import picocli.CommandLine.{Command, IExitCodeGenerator, Option}
 
 import java.io.{File, FileReader}
 import java.util.Optional
-import scala.collection.mutable
+import java.util.stream.Collectors.{summingInt, toList}
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try, Using}
 
 @Command(name = "download", mixinStandardHelpOptions = true, description = Array("Download files based on provided manifest."))
@@ -34,6 +36,7 @@ class Download(userConfig: UserConfig,
   var password: Optional[String] = Optional.empty
   
   private val NO_SIZE = 0L;
+
 
   override def run(): Unit = {
 
@@ -92,8 +95,8 @@ class Download(userConfig: UserConfig,
         }
       }
 
-      val links: Map[String, String] = CommandBlock("Retrieve Ferload download link(s)", successEmoji, padding) {
-        Try(ferload.getDownloadLinks(token, manifestContent.urls)) match {
+      val links: Map[LineContent, String] = CommandBlock("Retrieve Ferload download link(s)", successEmoji, padding) {
+        Try(ferload.getDownloadLinks(token, manifestContent)) match {
           case Success(links) => links
           case Failure(e) => {
             // always refresh token if failed
@@ -106,15 +109,14 @@ class Download(userConfig: UserConfig,
 
       val totalExpectedDownloadSize = CommandBlock("Compute total average expected download size", successEmoji, padding) {
         manifestContent.totalSize.getOrElse(
-          Try(s3.getTotalExpectedDownloadSize(links, appConfig.getLong("size-estimation-timeout"))) match {
+          Try(s3.getTotalExpectedDownloadSize(links.map{ case(k, v) => k.filePointer -> v }, appConfig.getLong("size-estimation-timeout"))) match {
             case Success(size) => size
-            case Failure(e) => {
+            case Failure(e) =>
               println()
               println()
               println(s"Failed to compute total average expected download size, reason: ${e.getMessage}")
               print(s"You can still proceed with the download, verify you have remaining disk-space available.")
               NO_SIZE
-            }
           })
       }
       
@@ -145,9 +147,34 @@ class Download(userConfig: UserConfig,
     }
   }
 
+
+  /**
+   * parse the input string into numeric size
+  @param input Input size string. Will accept size of the form: [123, 123 B, 123 KB, 123 MB, 123 GB, 123 TB]
+               if not units provided, it assumed to be bytes
+   */
+  private def extractSize (input: String): Long = {
+    if(input.isNumeric) {
+      input.toLong
+    } else {
+      val regex = "^([0-9.]+)\\s([A-Z]{1,2})$".r
+      val matched = regex.findAllIn(input)
+      val size = matched.group(1)
+      matched.group(2) match {
+        case "B" => size.toLong
+        case "KB" => size.toDouble.toLong * 1024L
+        case "MB" => (size.toDouble * math.pow(1024, 2)).toLong
+        case "GB" => (size.toDouble * math.pow(1024, 3)).toLong
+        case "TB" => (size.toDouble * math.pow(1024, 4)).toLong
+        case _ => throw new IllegalStateException(s"Size format not suitable: $input")
+      }
+    }
+  }
+
   private def extractManifestContent: ManifestContent = {
-    val manifestHeader = appConfig.getString("manifest-header")
-    val manifestSize = appConfig.getString("manifest-size")
+    val manifestFilePointer = scala.Option(userConfig.get(ClientManifestFilePointer)).getOrElse(appConfig.getString("manifest-file-pointer"))
+    val manifestFileName = scala.Option(userConfig.get(ClientManifestFileName))
+    val manifestSize = scala.Option(userConfig.get(ClientManifestFileSize)).getOrElse(appConfig.getString("manifest-size"))
     val manifestSeparator = appConfig.getString("manifest-separator").charAt(0)
 
     if (!manifest.exists()) {
@@ -161,42 +188,54 @@ class Download(userConfig: UserConfig,
         .withTrim()
         .withFirstRecordAsHeader()
         .parse(reader)
-      val urls = new mutable.StringBuilder
-      var totalSize = NO_SIZE
-      val fileIdColumnIndex = parser.getHeaderMap.getOrDefault(manifestHeader, -1)
+      val fileIdColumnIndex = parser.getHeaderMap.getOrDefault(manifestFilePointer, -1)
+      val fileDisplayNameColumnIndex = manifestFileName.map(displayCol => parser.getHeaderMap.getOrDefault(displayCol, -1)).map(_.toInt)
       val sizeColumnIndex = parser.getHeaderMap.getOrDefault(manifestSize, -1)
 
       if (fileIdColumnIndex == -1) {
-        throw new IllegalStateException("Missing column: " + manifestHeader)
+        throw new IllegalStateException("Missing column: " + manifestFilePointer)
       }
 
-      parser.getRecords.stream().forEach(record => {
-        val url = record.get(fileIdColumnIndex)
-        if (StringUtils.isNotBlank(url)) {
-          urls.append(s"$url\n")
-        }
-        if (record.isSet(sizeColumnIndex)) {  // size column exist (optional)
-          val size = record.get(sizeColumnIndex)
-          if (StringUtils.isNotBlank(size)) {
-            totalSize += size.toLong
-          }
-        }
-      })
+      val lines = parser.getRecords.stream().map(record => {
+          parseCVSRecord(record)(fileIdColumnIndex, fileDisplayNameColumnIndex.getOrElse(-1), sizeColumnIndex)
+        })
+        .collect(toList[scala.Option[LineContent]])
+        .asScala.toSeq.flatten
 
-      if (urls.isEmpty) {
+      if (lines.isEmpty) {
         throw new IllegalStateException("Empty content")
       }
+      val hasEmptyFileSizes = lines.exists(l => l.size.isEmpty)
 
+      val totalSize = if (hasEmptyFileSizes) {
+        None
+      } else {
+        val size = lines.foldLeft(0L) { (acc, l) =>
+          l.size.map(s => acc + s).getOrElse(0L)
+        }
+        Some(size)
+      }
 
-      ManifestContent(urls.toString(), if(totalSize == NO_SIZE) None else Some(totalSize))
+      ManifestContent(lines, totalSize)
 
     } match {
       case Success(value) => value
       case Failure(e) => throw new IllegalStateException(s"Invalid manifest file: " + e.getMessage, e)
     }
   }
+
+  private def parseCVSRecord (record: CSVRecord)
+                             (filePointerColIndex: Int, displayColIndex: Int, sizeColIndex: Int): scala.Option[LineContent] = {
+    val pointer =  record.get(filePointerColIndex)
+    val display =  if(displayColIndex >= 0) Some(record.get(displayColIndex)) else None
+    val size = if(sizeColIndex >= 0) Some(record.get(sizeColIndex)) else None
+
+    if (StringUtils.isNotBlank(pointer)) {
+      Some(LineContent(pointer, display,  size.map(extractSize)))
+    } else None
+  }
   
-  case class ManifestContent(urls: String, totalSize: scala.Option[Long])
+
 
   override def getExitCode: Int = 1
 
