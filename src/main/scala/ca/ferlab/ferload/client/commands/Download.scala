@@ -14,7 +14,7 @@ import picocli.CommandLine.{Command, IExitCodeGenerator, Option}
 
 import java.io.{File, FileReader}
 import java.util.Optional
-import java.util.stream.Collectors.{summingInt, toList}
+import java.util.stream.Collectors.toList
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try, Using}
 
@@ -62,6 +62,7 @@ class Download(userConfig: UserConfig,
 
       val authMethod = userConfig.get(Method)
       var token = userConfig.get(Token)
+      val refreshToken = userConfig.get(RefreshToken)
       if (KeycloakClient.AUTH_METHOD_PASSWORD == authMethod) {
         if (!keycloak.isValidToken(token)) {
           val passwordStr = password.orElseGet(() => readLine("-p", "", password = true))
@@ -82,17 +83,34 @@ class Download(userConfig: UserConfig,
           keycloak.getUserCredentials(null, null, userConfig.get(Token))
         }
       } else if (KeycloakClient.AUTH_DEVICE == authMethod) {
-        val resp = CommandBlock("Retrieve device token", successEmoji, padding) {
-          keycloak.getDevice
+        if(keycloak.isValidToken(token)) {
+          CommandBlock("Re-use user device credentials", successEmoji, padding) {
+            ""
+          }
+        } else {
+          val (newToken, newRefreshToken) = if(!keycloak.isValidToken(refreshToken)){
+            val resp = CommandBlock("Retrieve device token", successEmoji, padding) {
+              keycloak.getDevice
+            }
+
+            CommandBlock("Copy/Paste this URL in your browser and login please: ", successEmoji, padding) {
+              println(resp.getString("verification_uri_complete"))
+            }
+            keycloak.getUserDeviceToken(resp.getString("device_code"), resp.getInt("expires_in"))
+          } else {
+            CommandBlock("Refresh device credentials", successEmoji, padding) {
+              ""
+            }
+            keycloak.getRefreshedTokens(refreshToken)(userConfig.get(KeycloakRealm), userConfig.get(KeycloakAudience))
+          }
+
+          userConfig.set(Token, newToken)
+          userConfig.set(RefreshToken, newRefreshToken)
+          userConfig.save()
+          token = newToken
+
         }
 
-        token = CommandBlock("Copy/Paste this URL in your browser and login please: ", successEmoji, padding) {
-          println(resp.getString("verification_uri_complete"))
-          val newToken = keycloak.getUserDeviceToken(resp.getString("device_code"), resp.getInt("expires_in"))
-          userConfig.set(Token, newToken)
-          userConfig.save()
-          newToken
-        }
       }
 
       val links: Map[LineContent, String] = CommandBlock("Retrieve Ferload download link(s)", successEmoji, padding) {

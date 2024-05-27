@@ -7,7 +7,9 @@ trait IKeycloak {
 
   def getDevice: JSONObject
 
-  def getUserDeviceToken(deviceCode: String, expiresIn: Int): String
+  def getUserDeviceToken(deviceCode: String, expiresIn: Int): (String, String)
+
+  def getRefreshedTokens(refreshToken: String)(realm: String, client: String): (String, String)
 
   def isValidToken(token: String): Boolean
 }

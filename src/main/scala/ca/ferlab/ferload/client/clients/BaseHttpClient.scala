@@ -8,7 +8,6 @@ import org.apache.http.util.EntityUtils
 import org.json.JSONObject
 
 import scala.jdk.CollectionConverters.MapHasAsScala // scala 2.13
-// import scala.collection.JavaConverters._ // scala 2.12
 
 abstract class BaseHttpClient {
 
@@ -27,7 +26,9 @@ abstract class BaseHttpClient {
   }
 
   protected def formatExceptionMessage(message: String, status: Int, body: Option[String]): String = {
-    s"$message, code: $status, message:\n${body.getOrElse("")}"
+    val msg = body.map(r => new JSONObject(r).get("msg"))
+
+    s"$message, code: $status, message:\n${msg.getOrElse("")}"
   }
 
   protected def toMap(body: Option[String], lineContents: Seq[LineContent]): Map[LineContent, String] = {
