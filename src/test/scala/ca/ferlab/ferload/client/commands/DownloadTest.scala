@@ -67,7 +67,9 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
 
     override def getDevice: JSONObject = ???
 
-    override def getUserDeviceToken(deviceCode: String, expiresIn: Int): String = ???
+    override def getUserDeviceToken(deviceCode: String, expiresIn: Int): (String, String) = ???
+
+    override def getRefreshedTokens(refreshToken: String)(realm: String, client: String): (String, String) = ???
   }
 
   val mockKeycloakValidTokenInf: IKeycloak = new IKeycloak {
@@ -77,7 +79,9 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
 
     override def getDevice: JSONObject = ???
 
-    override def getUserDeviceToken(deviceCode: String, expiresIn: Int): String = ???
+    override def getUserDeviceToken(deviceCode: String, expiresIn: Int): (String, String) = ???
+
+    override def getRefreshedTokens(refreshToken: String)(realm: String, client: String): (String, String) = ???
   }
 
   val mockFerload: IFerload = new IFerload {

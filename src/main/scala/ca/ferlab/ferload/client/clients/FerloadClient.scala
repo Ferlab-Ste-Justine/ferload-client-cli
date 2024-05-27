@@ -27,7 +27,7 @@ class FerloadClient(userConfig: UserConfig) extends BaseHttpClient with IFerload
     val (body, status) = executeHttpRequest(httpRequest)
     status match {
       case 200 => toMap(body, manifestContent.lines)
-      case 403 => throw new IllegalStateException(formatExceptionMessage("No enough access rights to download the following files", status, body))
+      case 403 => throw new UnauthorizedException(formatExceptionMessage("No enough access rights to download the following files", status, body))
       case _ => throw new IllegalStateException(formatExceptionMessage("Failed to retrieve download link(s)", status, body))
     }
   }

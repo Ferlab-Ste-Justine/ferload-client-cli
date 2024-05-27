@@ -8,6 +8,8 @@ case object Username extends UserConfigName("username")
 
 case object Token extends UserConfigName("token")
 
+case object RefreshToken extends UserConfigName("refresh_token")
+
 case object KeycloakUrl extends UserConfigName("keycloak-url")
 
 case object KeycloakRealm extends UserConfigName("keycloak-realm")

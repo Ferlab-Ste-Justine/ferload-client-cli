@@ -31,7 +31,7 @@ class KeycloakClient(config: UserConfig) extends BaseHttpClient with IKeycloak {
     if (StringUtils.isNoneBlank(username, password)) {
       getRPT(getAccessToken(username, password))
     } else if(StringUtils.isNotBlank(refreshToken)) {
-      getRefreshedToken(refreshToken)
+      getRefreshedToken(refreshToken)(realm = config.get(TokenRealm), client = config.get(TokenClientId))
     } else {
       throw new IllegalStateException("No valid user credentials")
     }
@@ -49,7 +49,7 @@ class KeycloakClient(config: UserConfig) extends BaseHttpClient with IKeycloak {
     executeDeviceFetch(request)
   }
 
-  override def getUserDeviceToken(deviceCode: String, expiresIn: Int = MAX_TOKEN_EXPIRE): String = {
+  override def getUserDeviceToken(deviceCode: String, expiresIn: Int = MAX_TOKEN_EXPIRE): (String, String) = {
     val request = new HttpPost(s"${config.get(KeycloakUrl)}/realms/${config.get(KeycloakRealm)}/protocol/openid-connect/token")
     request.addHeader("Content-Type", "application/x-www-form-urlencoded")
 
@@ -63,6 +63,12 @@ class KeycloakClient(config: UserConfig) extends BaseHttpClient with IKeycloak {
     executeWithRetry(request, expiresIn)
   }
 
+  override def getRefreshedTokens(refreshToken: String)(realm: String, client: String): (String, String) = {
+    val resp =  refreshCredentials(refreshToken: String)(realm: String, client: String)
+
+    (resp.getString("access_token"), resp.getString("refresh_token"))
+  }
+
   private def getAccessToken(username: String, password: String) = {
     val request = new HttpPost(s"${config.get(KeycloakUrl)}/realms/${config.get(KeycloakRealm)}/protocol/openid-connect/token")
 
@@ -74,14 +80,20 @@ class KeycloakClient(config: UserConfig) extends BaseHttpClient with IKeycloak {
 
     request.setEntity(new UrlEncodedFormEntity(form, charset))
 
-    execute(request)
+    execute(request).getString("access_token")
   }
 
-  private def getRefreshedToken(refreshToken: String) = {
-    val request = new HttpPost(s"${config.get(KeycloakUrl)}/realms/${config.get(TokenRealm)}/protocol/openid-connect/token")
+  private def getRefreshedToken(refreshToken: String)(realm: String, client: String) = {
+    val refreshedCreds =  refreshCredentials(refreshToken: String)(realm: String, client: String)
+
+    refreshedCreds.getString("access_token")
+  }
+
+  private def refreshCredentials(refreshToken: String)(realm: String, client: String) = {
+    val request = new HttpPost(s"${config.get(KeycloakUrl)}/realms/$realm/protocol/openid-connect/token")
 
     val form = new java.util.ArrayList[BasicNameValuePair]()
-    form.add(new BasicNameValuePair("client_id", config.get(TokenClientId)))
+    form.add(new BasicNameValuePair("client_id", client))
     form.add(new BasicNameValuePair("grant_type", "refresh_token"))
     form.add(new BasicNameValuePair("refresh_token", refreshToken))
 
@@ -100,16 +112,16 @@ class KeycloakClient(config: UserConfig) extends BaseHttpClient with IKeycloak {
 
     request.setEntity(new UrlEncodedFormEntity(form, charset))
 
-    execute(request)
+    execute(request).getString("access_token")
   }
 
-  private def execute(request: HttpPost) = {
+  private def execute(request: HttpPost): JSONObject = {
     val (body, status) = executeHttpRequest(request)
-    val token = status match {
-      case 200 => body.map(new JSONObject(_)).get.getString("access_token")
+    val parsedBody = status match {
+      case 200 => body.map(new JSONObject(_)).get
       case _ => throw new IllegalStateException(formatExceptionMessage("Failed to get access token", status, body))
     }
-    token
+    parsedBody
   }
 
   private def executeNoVerify(request: HttpPost) = {
@@ -142,7 +154,8 @@ class KeycloakClient(config: UserConfig) extends BaseHttpClient with IKeycloak {
     import cats.effect.unsafe.implicits.global
     retryingOnFailures(policyDelay.join(policyMaxRetries(expiresIn)), isResultOk, onFailure)(IO(executeNoVerify(request)))
       .map { case(_, body) =>
-        body.map(new JSONObject(_)).get.getString("access_token")
+        val parsedBody = body.map(new JSONObject(_)).get
+        (parsedBody.getString("access_token"), parsedBody.getString("refresh_token"))
       }.unsafeRunSync()
   }
 
