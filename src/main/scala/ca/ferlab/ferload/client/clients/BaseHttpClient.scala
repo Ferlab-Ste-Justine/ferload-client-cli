@@ -31,6 +31,13 @@ abstract class BaseHttpClient {
     s"$message, code: $status, message:\n${msg.getOrElse("")}"
   }
 
+  protected def formatUnauthorizedMessage(message: String, body: Option[String]): String = {
+    val msg = body.map(r => new JSONObject(r).get("msg"))
+
+    s"$message\n${msg.getOrElse("")}"
+  }
+
+
   protected def toMap(body: Option[String], lineContents: Seq[LineContent]): Map[LineContent, String] = {
     body.map(new JSONObject(_).toMap.asScala.map({ case (key, value) =>
       lineContents.find(_.filePointer == key).get -> value.toString
