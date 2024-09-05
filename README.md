@@ -116,14 +116,18 @@ Configuration has been successfully updated ✅
 By providing a manifest file and an output folder the tool will start downloading the files. This step is done concurrently with a secured hash validation for file integrity.
 ### Usage
 ```
-Usage: ferload-client download [-hV] [-m=<manifest>] [-o=<outputDir>]
+Usage: ferload-client download [-hV] [(-m=<manifest> | -i=<manifestId>)] [-o=<outputDir>]
                                [-p=<password>]
 Download files based on provided manifest.
   -h, --help      Show this help message and exit.
   -m, --manifest=<manifest>
                   manifest file location (default: manifest.tsv)
+  -i, --manifest-id=<manifestId>
+                  manifest id containing the files to download  
   -o, --output-dir=<outputDir>
                   downloads location (default: .)
+  -n, --manifest-only   
+                  download the manifest only in tsv format supplied manifest id.
   -V, --version   Print version information and exit.
 ```
 

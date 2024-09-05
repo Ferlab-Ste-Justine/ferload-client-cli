@@ -1,16 +1,17 @@
 package ca.ferlab.ferload.client.commands
 
-import ca.ferlab.ferload.client.clients.KeycloakClient
 import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak, IS3}
+import ca.ferlab.ferload.client.clients.{KeycloakClient, ReportApiClient}
+import ca.ferlab.ferload.client.commands.Download.ManifestInput
 import ca.ferlab.ferload.client.commands.factory.{BaseCommand, CommandBlock}
 import ca.ferlab.ferload.client.configurations._
 import ca.ferlab.ferload.client.{LineContent, ManifestContent, OpsNum}
 import com.typesafe.config.Config
-import org.apache.commons.csv.{CSVFormat, CSVRecord}
+import org.apache.commons.csv.{CSVFormat, CSVParser, CSVRecord}
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import picocli.CommandLine
-import picocli.CommandLine.{Command, IExitCodeGenerator, Option}
+import picocli.CommandLine.{ArgGroup, Command, IExitCodeGenerator, Option}
 
 import java.io.{File, FileReader}
 import java.util.Optional
@@ -26,8 +27,8 @@ class Download(userConfig: UserConfig,
                ferload: IFerload,
                s3: IS3) extends BaseCommand(appConfig, commandLine) with Runnable with IExitCodeGenerator {
 
-  @Option(names = Array("-m", "--manifest"), description = Array("manifest file location (default: ${DEFAULT-VALUE})"))
-  var manifest: File = new File("manifest.tsv")
+  @ArgGroup(exclusive = true, multiplicity = "1") val manifestInput: ManifestInput = null
+
 
   @Option(names = Array("-o", "--output-dir"), description = Array("downloads location (default: ${DEFAULT-VALUE})"))
   var outputDir: File = new File(".")
@@ -56,13 +57,10 @@ class Download(userConfig: UserConfig,
 
       val padding = appConfig.getInt("padding")
 
-      val manifestContent: ManifestContent = CommandBlock("Checking manifest file", successEmoji, padding) {
-        extractManifestContent
-      }
-
       val authMethod = userConfig.get(Method)
       var token = userConfig.get(Token)
       val refreshToken = userConfig.get(RefreshToken)
+
       if (KeycloakClient.AUTH_METHOD_PASSWORD == authMethod) {
         if (!keycloak.isValidToken(token)) {
           val passwordStr = password.orElseGet(() => readLine("-p", "", password = true))
@@ -111,6 +109,16 @@ class Download(userConfig: UserConfig,
 
         }
 
+      }
+
+      val manifestContent: ManifestContent =  if (manifestInput.manifestId.isPresent) {
+        CommandBlock("Extracting Manifest from ID", successEmoji, padding) {
+          fetchAndExtractManifestContentFromId(manifestId = manifestInput.manifestId.get(), token)
+        }
+      } else {
+        CommandBlock("Checking manifest file", successEmoji, padding) {
+          extractManifestContent(manifestInput.manifest.get())
+        }
       }
 
       val links: Map[LineContent, String] = CommandBlock("Retrieve Ferload download link(s)", successEmoji, padding) {
@@ -189,17 +197,68 @@ class Download(userConfig: UserConfig,
     }
   }
 
-  private def extractManifestContent: ManifestContent = {
+  private def extractManifestContentFromEntryList(csvEntryList: List[String]) = {
     val manifestFilePointer = scala.Option(userConfig.get(ClientManifestFilePointer)).getOrElse(appConfig.getString("manifest-file-pointer"))
     val manifestFileName = scala.Option(userConfig.get(ClientManifestFileName))
     val manifestSize = scala.Option(userConfig.get(ClientManifestFileSize)).getOrElse(appConfig.getString("manifest-size"))
     val manifestSeparator = appConfig.getString("manifest-separator").charAt(0)
 
-    if (!manifest.exists()) {
-      throw new IllegalStateException("Manifest file not found at location: " + manifest.getAbsolutePath)
+
+    Try {
+      val csvFormat = CSVFormat.DEFAULT
+        .withDelimiter(manifestSeparator)
+        .withIgnoreEmptyLines()
+        .withTrim()
+
+      val header = csvEntryList.head.split(manifestSeparator).toList
+      val record = csvEntryList.tail
+
+      val csv = record.flatMap(l => CSVParser.parse(l, csvFormat.withHeader(header: _*)).getRecords.asScala.toList)
+
+      val fileIdColumnIndex = header.indexOf(manifestFilePointer)
+      val fileDisplayNameColumnIndex = manifestFileName.map(displayCol =>  header.indexOf(displayCol))
+      val sizeColumnIndex = header.indexOf(manifestSize)
+
+      if (fileIdColumnIndex == -1) {
+        throw new IllegalStateException("Missing column: " + manifestFilePointer)
+      }
+
+      val lines = csv.flatMap(record => {
+          parseCVSRecord(record)(fileIdColumnIndex, fileDisplayNameColumnIndex.getOrElse(-1), sizeColumnIndex)
+        })
+
+      if (lines.isEmpty) {
+        throw new IllegalStateException("Empty content")
+      }
+      val hasEmptyFileSizes = lines.exists(l => l.size.isEmpty)
+
+      val totalSize = if (hasEmptyFileSizes) {
+        None
+      } else {
+        val size = lines.foldLeft(0L) { (acc, l) =>
+          l.size.map(s => acc + s).getOrElse(0L)
+        }
+        Some(size)
+      }
+
+      ManifestContent(lines, totalSize)
+    } match {
+      case Success(value) => value
+      case Failure(e) => throw new IllegalStateException(s"Invalid manifest file: " + e.getMessage, e)
+    }
+  }
+
+  private def extractManifestContent(manifestFile: File): ManifestContent = {
+    val manifestFilePointer = scala.Option(userConfig.get(ClientManifestFilePointer)).getOrElse(appConfig.getString("manifest-file-pointer"))
+    val manifestFileName = scala.Option(userConfig.get(ClientManifestFileName))
+    val manifestSize = scala.Option(userConfig.get(ClientManifestFileSize)).getOrElse(appConfig.getString("manifest-size"))
+    val manifestSeparator = appConfig.getString("manifest-separator").charAt(0)
+
+    if (manifestInput.manifest.isPresent && !manifestFile.exists()) {
+      throw new IllegalStateException("Manifest file not found at location: " + manifestInput.manifest.get().getAbsolutePath)
     }
 
-    Using(new FileReader(manifest)) { reader =>
+    Using(new FileReader(manifestFile)) { reader =>
       val parser = CSVFormat.DEFAULT
         .withDelimiter(manifestSeparator)
         .withIgnoreEmptyLines()
@@ -242,6 +301,14 @@ class Download(userConfig: UserConfig,
     }
   }
 
+  private def fetchAndExtractManifestContentFromId(manifestId: String, token: String): ManifestContent = {
+    val reportApiClient = new ReportApiClient(userConfig)
+
+    val manifestEntryList = reportApiClient.getManifestById(manifestId, token)
+
+    extractManifestContentFromEntryList(manifestEntryList)
+  }
+
   private def parseCVSRecord (record: CSVRecord)
                              (filePointerColIndex: Int, displayColIndex: Int, sizeColIndex: Int): scala.Option[LineContent] = {
     val pointer =  record.get(filePointerColIndex)
@@ -280,5 +347,15 @@ class Download(userConfig: UserConfig,
     } else {
       false; // method is null ?
     }
+  }
+}
+
+object Download {
+  //Must supply manifest path OR manifestId
+  class ManifestInput {
+    @Option(names = Array("-m", "--manifest"), description = Array("manifest file location (default: ${DEFAULT-VALUE})"))
+    var manifest: Optional[File] = Optional.empty[File]
+    @Option(names = Array("-i", "--manifest-id"), description = Array("manifest ID"))
+    var manifestId: Optional[String] = Optional.empty[String]
   }
 }

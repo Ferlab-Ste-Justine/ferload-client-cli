@@ -33,3 +33,5 @@ case object ClientManifestFilePointer extends UserConfigName("client-config-mani
 case object ClientManifestFileName extends UserConfigName("client-config-manifest-filename")
 
 case object ClientManifestFileSize extends UserConfigName("client-config-manifest-size")
+
+case object ReportApiManifestUrl extends UserConfigName("client-config-manifest-url")
