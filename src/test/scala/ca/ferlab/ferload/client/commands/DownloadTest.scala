@@ -112,23 +112,22 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   }
 
   test("manifest not found") {
-    assertThrows[IllegalStateException] {
-      new Download(mockUserConfig, appTestConfig, null, null, null, null).run()
-    }
+    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, mockCommandLineInfAgreed, mockKeycloakInf, null, null))
+    assertCommandException(cmd, "Manifest file not found at location:", "-m", "/mount/some.tsv")
   }
 
   test("invalid output-dir") {
     val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, null, null, null, null))
-    assertCommandException(cmd, "Failed to access the output directory", "-o", "/mount")
+    assertCommandException(cmd, "Failed to access the output directory", "-m", "/mount/some.tsv", "-o", "/mount")
   }
 
   test("manifest empty") {
-    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, null, null, null, null))
+    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, mockCommandLineInfAgreed, mockKeycloakInf, null, null))
     assertCommandException(cmd, "Empty content", "-m", manifestEmptyFile)
   }
 
   test("manifest invalid") {
-    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, null, null, null, null))
+    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, mockCommandLineInfAgreed, mockKeycloakInf, null, null))
     assertCommandException(cmd, "Missing column", "-m", manifestInvalidFile)
   }
 
@@ -204,17 +203,42 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
 
     val mockS3: IS3 = new IS3 {
       override def download(outputDir: File, links: Map[LineContent, String]): Set[File] = {
-        assert(links.size == 2)
+        assert(links.size == 3)
         Set(new File("f1"), new File("f2"))
       }
 
       override def getTotalExpectedDownloadSize(links: Map[String, String], timeout: Long): Long = 1L
 
-      override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 2L
+      override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 20000000L
     }
 
     val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, mockCommandLineInfAgreedSimple, mockKeycloakValidTokenInf, mockFerload, mockS3))
     assert(cmd.execute("-m", manifestValidFile) == 1)
+  }
+
+  test("Erroneous download inputs") {
+
+    val mockS3: IS3 = new IS3 {
+      override def download(outputDir: File, links: Map[LineContent, String]): Set[File] = {
+        assert(links.size == 3)
+        Set(new File("f1"), new File("f2"))
+      }
+
+      override def getTotalExpectedDownloadSize(links: Map[String, String], timeout: Long): Long = 1L
+
+      override def getTotalAvailableDiskSpaceAt(manifest: File): Long = 20000000L
+    }
+
+    val cmd = new CommandLine(new Download(mockUserConfig, appTestConfig, mockCommandLineInfAgreedSimple, mockKeycloakValidTokenInf, mockFerload, mockS3))
+
+    //Picocli Error: Passing a <manifest> and a <manifest_id> in the same command (mutually exclusive)
+    assert(cmd.execute("-m", manifestValidFile, "i", "1234") == 2)
+
+    //Picocli Error: Passing a <manifest> and a requesting to download the manifest <--manifest-only> in the same command
+    assert(cmd.execute("-m", manifestValidFile, "--manifest-only") == 2)
+
+    //Picocli Error: No argument for download <-i> or <-m>, one is required
+    assert(cmd.execute() == 2)
   }
 
 }

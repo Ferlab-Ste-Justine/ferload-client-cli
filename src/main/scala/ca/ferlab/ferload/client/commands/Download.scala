@@ -111,6 +111,7 @@ class Download(userConfig: UserConfig,
 
       }
 
+      //<manifestOnly> option only allowed in case of manifest_id command (-i).
       if (filesDownloadStyle.byManifestId.manifestOnly) {
         downloadManifest(token, padding)
       } else {
@@ -374,16 +375,16 @@ class Download(userConfig: UserConfig,
 object Download {
   //Must supply manifest path OR manifestId
   class FilesDownloadStyle {
-    @Option(names = Array("-m", "--manifest"), description = Array("manifest file location (default: ${DEFAULT-VALUE})"))
+    @Option(names = Array("-m", "--manifest"), required = true, description = Array("manifest file location"))
     var byManifest: Optional[File] = Optional.empty[File]
     @ArgGroup(exclusive = false, multiplicity = "1")
     val byManifestId: ManifestId = new ManifestId()
   }
 
   class ManifestId {
-    @Option(names = Array("-i", "--manifest-id"), description = Array("manifest ID"))
+    @Option(names = Array("-i", "--manifest-id"), required = true, description = Array("manifest ID"))
     var id: Optional[String] = Optional.empty[String]
-    @Option(names = Array("--manifest-only"), description = Array("Download the manifest only from the manifest id"))
+    @Option(names = Array("--manifest-only"), required = false, description = Array("Download the manifest only from the manifest id"))
     var manifestOnly: Boolean = false
   }
 }

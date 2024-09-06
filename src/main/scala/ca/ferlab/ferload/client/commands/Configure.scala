@@ -81,9 +81,11 @@ class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommand
       } else {
         None
       }
-      val manifestUrl =  if (config.has("reportApiManifestUrl") && !config.isNull("reportApiManifestUrl")) {
-        Some(config.getString("reportApiManifestUrl"))
-      } else None
+
+      config.optString("reportApiManifestUrl") match {
+        case s if s.nonEmpty => userConfig.set(ReportApiManifestUrl, s)
+        case _ =>
+      }
 
       userConfig.set(KeycloakUrl, ferloadConfig.getString("url"))
       userConfig.set(KeycloakRealm, ferloadConfig.getString("realm"))
@@ -94,8 +96,6 @@ class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommand
         userConfig.set(ClientManifestFileName, config.getString("manifest-filename"))
         userConfig.set(ClientManifestFileSize, config.getString("manifest-size"))
       })
-
-      manifestUrl.foreach(c => userConfig.set(ReportApiManifestUrl, c))
 
     } else {
       throw new IllegalStateException("Unknown authentication method: " + method)

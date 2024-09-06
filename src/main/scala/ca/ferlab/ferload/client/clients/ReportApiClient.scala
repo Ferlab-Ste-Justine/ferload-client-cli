@@ -5,6 +5,7 @@ import ca.ferlab.ferload.client.configurations._
 import org.apache.http.HttpHeaders
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.entity.ContentType
+import java.util.stream.Stream
 
 import java.net.URI
 import java.util.stream.Collectors
@@ -22,7 +23,8 @@ class ReportApiClient(userConfig: UserConfig) extends BaseHttpClient with IRepor
     val (body, status) = executeHttpRequest(httpRequest)
 
     status match {
-      case s if s < 300  => body.get.lines().collect(Collectors.toList[String]).asScala.toList
+      case s if s < 300  =>
+        body.get.lines.asInstanceOf[Stream[String]].collect(Collectors.toList[String]).asScala.toList
       case _ => throw new IllegalStateException(formatExceptionMessage(s"Failed to retrieve manifest for id: $manifestId", status, body))
     }
   }
@@ -32,7 +34,7 @@ class ReportApiClient(userConfig: UserConfig) extends BaseHttpClient with IRepor
     val httpRequest = new HttpGet(requestUri)
     httpRequest.addHeader(HttpHeaders.AUTHORIZATION, s"Bearer $token")
     httpRequest.addHeader(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType)
-    val status = executeHttpRequestAndDownload(httpRequest, outputDir, manifestId)
+    executeHttpRequestAndDownload(httpRequest, outputDir, manifestId)
 
   }
 }

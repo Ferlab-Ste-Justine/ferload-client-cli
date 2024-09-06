@@ -116,18 +116,16 @@ Configuration has been successfully updated ✅
 By providing a manifest file and an output folder the tool will start downloading the files. This step is done concurrently with a secured hash validation for file integrity.
 ### Usage
 ```
-Usage: ferload-client download [-hV] [(-m=<manifest> | -i=<manifestId>)] [-o=<outputDir>]
-                               [-p=<password>]
+Usage: ferload-client download [-hV] [-o=<outputDir>] [-p=<password>]
+                               (-m=<byManifest> | (-i=<id> [--manifest-only]))
 Download files based on provided manifest.
   -h, --help      Show this help message and exit.
-  -m, --manifest=<manifest>
-                  manifest file location (default: manifest.tsv)
-  -i, --manifest-id=<manifestId>
-                  manifest id containing the files to download  
+  -i, --manifest-id=<id>   manifest ID
+      --manifest-only      Download the manifest only from the manifest id
+  -m, --manifest=<byManifest>
+                           manifest file location
   -o, --output-dir=<outputDir>
                   downloads location (default: .)
-  -n, --manifest-only   
-                  download the manifest only in tsv format supplied manifest id.
   -V, --version   Print version information and exit.
 ```
 
@@ -140,11 +138,11 @@ user@localhost:~$ ./ferload-client download -m ./data/m1.tsv -o ./data
 Welcome to Ferload Client, this tools will download
 the files based on the provided manifest.
 
-Checking manifest file                             ✅
-
 password                                   [hidden]:
 
 Retrieve user credentials                          ✅
+
+Checking manifest file                             ✅
 
 Retrieve Ferload download link(s)                  ✅
 
@@ -176,12 +174,12 @@ user@localhost:~$ ./ferload-client download -m ./data/m1.tsv -o ./data
 Welcome to Ferload Client, this tools will download
 the files based on the provided manifest.
 
-Checking manifest file                             ✅
-
 Retrieve device token                              ✅
 
 Copy/Paste this URL in your browser and login please: http://localhost:32771/realms/CQDG/device?user_code=NNLJ-AOOQ
  ✅ 
+ 
+Checking manifest file                             ✅
 
 Retrieve Ferload download link(s)                  ✅
 

@@ -11,7 +11,7 @@ import picocli.CommandLine.Command
 import java.io.File
 
 @Command(name = "ferload-client", mixinStandardHelpOptions = true,
-  version = Array("2.1.1"),
+  version = Array("2.2.0"),
   description = Array("Official Ferload Client command line interface for files download."),
   subcommands = Array(classOf[Configure], classOf[Download]))
 class Main extends Runnable {
