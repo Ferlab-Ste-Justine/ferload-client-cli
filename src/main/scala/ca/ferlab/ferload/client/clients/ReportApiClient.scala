@@ -14,7 +14,7 @@ class ReportApiClient(userConfig: UserConfig) extends BaseHttpClient with IRepor
   lazy val url: String = userConfig.get(ReportApiManifestUrl)
 
 
-  override def getManifestById(manifestId: String, token: String): List[String] = {
+  override def getManifestContentById(manifestId: String, token: String): List[String] = {
     val requestUri = new URI(s"$url/$manifestId")
     val httpRequest = new HttpGet(requestUri)
     httpRequest.addHeader(HttpHeaders.AUTHORIZATION, s"Bearer $token")
@@ -27,4 +27,12 @@ class ReportApiClient(userConfig: UserConfig) extends BaseHttpClient with IRepor
     }
   }
 
+  override def downloadManifestById(manifestId: String, token: String, outputDir: String): Unit = {
+    val requestUri = new URI(s"$url/$manifestId")
+    val httpRequest = new HttpGet(requestUri)
+    httpRequest.addHeader(HttpHeaders.AUTHORIZATION, s"Bearer $token")
+    httpRequest.addHeader(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType)
+    val status = executeHttpRequestAndDownload(httpRequest, outputDir, manifestId)
+
+  }
 }

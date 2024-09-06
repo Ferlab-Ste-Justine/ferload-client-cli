@@ -7,6 +7,7 @@ import org.apache.http.impl.client.{CloseableHttpClient, HttpClientBuilder}
 import org.apache.http.util.EntityUtils
 import org.json.JSONObject
 
+import java.io.{File, FileOutputStream}
 import scala.jdk.CollectionConverters.MapHasAsScala // scala 2.13
 
 abstract class BaseHttpClient {
@@ -23,6 +24,25 @@ abstract class BaseHttpClient {
     // always properly close
     EntityUtils.consumeQuietly(response.getEntity)
     (body, response.getStatusLine.getStatusCode)
+  }
+
+  protected def executeHttpRequestAndDownload(request: HttpRequestBase, path: String, manifestId: String): Unit = {
+    val response: HttpResponse = http.execute(request)
+    val entity = response.getEntity
+
+    response.getStatusLine.getStatusCode match {
+      case status if status < 300 =>
+        try {
+          val manifestFile = new File(s"$path/$manifestId.tsv")
+          val outputStream: FileOutputStream = new FileOutputStream(manifestFile)
+          try entity.writeTo(outputStream)
+          finally if (outputStream != null) outputStream.close()
+        }
+      case status =>
+        throw new IllegalStateException(s"Failed to retrieve manifest for id: $manifestId, code: $status")
+    }
+    // always properly close
+    EntityUtils.consumeQuietly(response.getEntity)
   }
 
   protected def formatExceptionMessage(message: String, status: Int, body: Option[String]): String = {
