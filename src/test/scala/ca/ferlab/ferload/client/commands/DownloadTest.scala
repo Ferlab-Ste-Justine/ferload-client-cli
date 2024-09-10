@@ -1,5 +1,6 @@
 package ca.ferlab.ferload.client.commands
 
+import ca.ferlab.ferload.client.clients.Error
 import ca.ferlab.ferload.client.{LineContent, ManifestContent}
 import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak, IS3}
 import ca.ferlab.ferload.client.configurations._
@@ -85,9 +86,9 @@ class DownloadTest extends AnyFunSuite with BeforeAndAfter {
   }
 
   val mockFerload: IFerload = new IFerload {
-    override def getDownloadLinks(token: String, manifestContent: ManifestContent): Map[LineContent, String] = {
+    override def getDownloadLinks(token: String, manifestContent: ManifestContent): Either[Error, Map[LineContent, String]] = {
       assert(token.equals("token"))
-      Map(LineContent(filePointer = "f1") -> "link1", LineContent(filePointer = "f2") -> "link2", LineContent(filePointer = "f3") -> "link3")
+      Right(Map(LineContent(filePointer = "f1") -> "link1", LineContent(filePointer = "f2") -> "link2", LineContent(filePointer = "f3") -> "link3"))
     }
 
     override def getConfig: JSONObject = mockFerloadConfigPassword

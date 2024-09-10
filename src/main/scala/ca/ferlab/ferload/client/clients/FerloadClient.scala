@@ -16,7 +16,7 @@ class FerloadClient(userConfig: UserConfig) extends BaseHttpClient with IFerload
   lazy val url = new URL(userConfig.get(FerloadUrl))
   private val separator = "\n"
 
-  override def getDownloadLinks(token: String, manifestContent: ManifestContent): Map[LineContent, String] = {
+  override def getDownloadLinks(token: String, manifestContent: ManifestContent): Either[Error, Map[LineContent, String]]  = {
     val requestUrl = new URL(url, "/objects/list").toString
     val httpRequest = new HttpPost(requestUrl)
     httpRequest.addHeader(HttpHeaders.AUTHORIZATION, s"Bearer $token")
@@ -26,9 +26,9 @@ class FerloadClient(userConfig: UserConfig) extends BaseHttpClient with IFerload
     httpRequest.setEntity(new StringEntity(linesAsString))
     val (body, status) = executeHttpRequest(httpRequest)
     status match {
-      case 200 => toMap(body, manifestContent.lines)
-      case 403 => throw new UnauthorizedException(formatUnauthorizedMessage("The manifest contains files you don't have access to. Please review the following unauthorized file IDs:", body))
-      case _ => throw new IllegalStateException(formatExceptionMessage("Failed to retrieve download link(s)", status, body))
+      case 200 => Right(toMap(body, manifestContent.lines))
+      case 403 => Left(Error(formatUnauthorizedMessage("The manifest contains files you don't have access to. Please review the following unauthorized file IDs:", body)))
+      case _ => Left(Error(formatExceptionMessage("Failed to retrieve download link(s)", status, body)))
     }
   }
 
