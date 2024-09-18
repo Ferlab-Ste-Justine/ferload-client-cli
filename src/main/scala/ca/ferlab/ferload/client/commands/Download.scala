@@ -109,9 +109,14 @@ class Download(userConfig: UserConfig,
 
       }
 
-      //<manifestOnly> option only allowed in case of manifest_id command (-i).
-      (if (filesDownloadStyle.byManifestId.manifestOnly) {
-        downloadManifest(token, padding)
+      (if(filesDownloadStyle.byManifestId.id.isPresent){
+        if(filesDownloadStyle.byManifestId.manifestOnly){
+          downloadManifest(token, padding)
+        } else {
+          downloadManifest(token, padding)
+          downloadFiles(token, padding)
+        }
+
       } else {
         downloadFiles(token, padding)
       }) match {
@@ -318,7 +323,7 @@ class Download(userConfig: UserConfig,
 
   private def extractManifest(token: String, padding: Int): Either[Error, ManifestContent] = {
     if (filesDownloadStyle.byManifestId.id.isPresent) {
-      CommandBlock("Extracting Manifest from ID", successEmoji, padding) {
+      CommandBlock("Checking manifest file", successEmoji, padding) {
         fetchAndExtractManifestContentFromId(manifestId = filesDownloadStyle.byManifestId.id.get(), token)
       }
     } else {
