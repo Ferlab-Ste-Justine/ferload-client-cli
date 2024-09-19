@@ -1,16 +1,17 @@
 package ca.ferlab.ferload.client.commands
 
-import ca.ferlab.ferload.client.clients.KeycloakClient
 import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload, IKeycloak, IS3}
+import ca.ferlab.ferload.client.clients.{Error, KeycloakClient, ReportApiClient}
+import ca.ferlab.ferload.client.commands.Download.FilesDownloadStyle
 import ca.ferlab.ferload.client.commands.factory.{BaseCommand, CommandBlock}
 import ca.ferlab.ferload.client.configurations._
 import ca.ferlab.ferload.client.{LineContent, ManifestContent, OpsNum}
 import com.typesafe.config.Config
-import org.apache.commons.csv.{CSVFormat, CSVRecord}
+import org.apache.commons.csv.{CSVFormat, CSVParser, CSVRecord}
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import picocli.CommandLine
-import picocli.CommandLine.{Command, IExitCodeGenerator, Option}
+import picocli.CommandLine.{ArgGroup, Command, IExitCodeGenerator, Option, Parameters}
 
 import java.io.{File, FileReader}
 import java.util.Optional
@@ -26,8 +27,8 @@ class Download(userConfig: UserConfig,
                ferload: IFerload,
                s3: IS3) extends BaseCommand(appConfig, commandLine) with Runnable with IExitCodeGenerator {
 
-  @Option(names = Array("-m", "--manifest"), description = Array("manifest file location (default: ${DEFAULT-VALUE})"))
-  var manifest: File = new File("manifest.tsv")
+
+  @ArgGroup(exclusive = true, multiplicity = "1") val filesDownloadStyle: FilesDownloadStyle = null
 
   @Option(names = Array("-o", "--output-dir"), description = Array("downloads location (default: ${DEFAULT-VALUE})"))
   var outputDir: File = new File(".")
@@ -36,7 +37,6 @@ class Download(userConfig: UserConfig,
   var password: Optional[String] = Optional.empty
   
   private val NO_SIZE = 0L;
-
 
   override def run(): Unit = {
 
@@ -54,15 +54,12 @@ class Download(userConfig: UserConfig,
         throw new IllegalStateException("Failed to access the output directory: " + outputDir.getAbsolutePath)
       }
 
-      val padding = appConfig.getInt("padding")
-
-      val manifestContent: ManifestContent = CommandBlock("Checking manifest file", successEmoji, padding) {
-        extractManifestContent
-      }
+      implicit lazy val padding: Int = appConfig.getInt("padding")
 
       val authMethod = userConfig.get(Method)
-      var token = userConfig.get(Token)
+      implicit var token: String = userConfig.get(Token)
       val refreshToken = userConfig.get(RefreshToken)
+
       if (KeycloakClient.AUTH_METHOD_PASSWORD == authMethod) {
         if (!keycloak.isValidToken(token)) {
           val passwordStr = password.orElseGet(() => readLine("-p", "", password = true))
@@ -108,60 +105,94 @@ class Download(userConfig: UserConfig,
           userConfig.set(RefreshToken, newRefreshToken)
           userConfig.save()
           token = newToken
-
         }
 
       }
 
-      val links: Map[LineContent, String] = CommandBlock("Retrieve Ferload download link(s)", successEmoji, padding) {
-        Try(ferload.getDownloadLinks(token, manifestContent)) match {
-          case Success(links) => links
-          case Failure(e) => {
-            // always refresh token if failed
-            userConfig.remove(Token)
-            userConfig.save()
-            throw e
-          }
-        }
-      }
-
-      val totalExpectedDownloadSize = CommandBlock("Compute total average expected download size", successEmoji, padding) {
-        manifestContent.totalSize.getOrElse(
-          Try(s3.getTotalExpectedDownloadSize(links.map{ case(k, v) => k.filePointer -> v }, appConfig.getLong("size-estimation-timeout"))) match {
-            case Success(size) => size
-            case Failure(e) =>
-              println()
-              println()
-              println(s"Failed to compute total average expected download size, reason: ${e.getMessage}")
-              print(s"You can still proceed with the download, verify you have remaining disk-space available.")
-              NO_SIZE
-          })
-      }
-      
-      val totalExpectedDownloadSizeStr = if(totalExpectedDownloadSize > 0) FileUtils.byteCountToDisplaySize(totalExpectedDownloadSize) else "-"
-      val usableSpace = s3.getTotalAvailableDiskSpaceAt(outputDir)
-      val usableSPaceStr = FileUtils.byteCountToDisplaySize(usableSpace)
-      
-      val downloadAgreement = appConfig.getString("download-agreement")
-      val agreedToDownload = commandLine.readLine(s"The total average expected download size will be " +
-        s"$totalExpectedDownloadSizeStr do you want to continue (your available disk space is: $usableSPaceStr) ? [$downloadAgreement]")
-      println()
-
-      if (downloadAgreement.startsWith(agreedToDownload) || StringUtils.isBlank(agreedToDownload)) {
-
-        if (usableSpace < totalExpectedDownloadSize) {
-          throw new IllegalStateException(s"Not enough disk space available $usableSpace < $totalExpectedDownloadSize")
+      (if(filesDownloadStyle.byManifestId.id.isPresent){
+        if(filesDownloadStyle.byManifestId.manifestOnly){
+          downloadManifest(token, padding)
+        } else {
+          downloadManifest(token, padding)
+          downloadFiles(token, padding)
         }
 
+      } else {
+        downloadFiles(token, padding)
+      }) match {
+        case Right(_) => //nothing
+        case Left(e) => throw new IllegalStateException(e.message)
+      }
+    }
+  }
+
+  /**
+   * Download the file manifest in TSV format from required ID at desired path
+   * @param token JWT token of the user
+   * @param padding Padding required for display
+   * @return `Right` unit if successful or `Left` Exception if failure
+   * */
+  private def downloadManifest(token: String, padding: Int) = {
+    CommandBlock("Retrieving Manifest from ID", successEmoji, padding) {
+      fetchManifestFromId(manifestId = filesDownloadStyle.byManifestId.id.get(), token)
+    }
+  }
+
+  private def downloadFiles(token: String, padding: Int) = {
+    for {
+      manifestContent <- extractManifest(token: String, padding: Int)
+      links <- {
+        val downloadLinks = ferload.getDownloadLinks(token, manifestContent)
+        if (downloadLinks.isLeft) {
+          // always refresh token if failed
+          userConfig.remove(Token)
+          userConfig.save()
+        }
+        downloadLinks
+      }
+      resp <- downloadFilesWithChecks(manifestContent,links, padding)
+    } yield resp
+  }
+
+  def downloadFilesWithChecks(manifestContent: ManifestContent, links: Map[LineContent, String], padding: Int): Either[Error, Unit] = {
+    val totalExpectedDownloadSize = CommandBlock("Compute total average expected download size", successEmoji, padding) {
+      manifestContent.totalSize.getOrElse(
+        Try(s3.getTotalExpectedDownloadSize(links.map{ case(k, v) => k.filePointer -> v }, appConfig.getLong("size-estimation-timeout"))) match {
+          case Success(size) => size
+          case Failure(e) =>
+            println()
+            println()
+            println(s"Failed to compute total average expected download size, reason: ${e.getMessage}")
+            print(s"You can still proceed with the download, verify you have remaining disk-space available.")
+            NO_SIZE
+        })
+    }
+
+    val totalExpectedDownloadSizeStr = if(totalExpectedDownloadSize > 0) FileUtils.byteCountToDisplaySize(totalExpectedDownloadSize) else "-"
+    val usableSpace = s3.getTotalAvailableDiskSpaceAt(outputDir)
+    val usableSPaceStr = FileUtils.byteCountToDisplaySize(usableSpace)
+
+    val downloadAgreement = appConfig.getString("download-agreement")
+    val agreedToDownload = commandLine.readLine(s"The total average expected download size will be " +
+      s"$totalExpectedDownloadSizeStr do you want to continue (your available disk space is: $usableSPaceStr) ? [$downloadAgreement]")
+    println()
+
+    if (downloadAgreement.startsWith(agreedToDownload) || StringUtils.isBlank(agreedToDownload)) {
+
+
+      if (usableSpace < totalExpectedDownloadSize) {
+        Left(Error(s"Not enough disk space available $usableSpace < $totalExpectedDownloadSize"))
+      } else {
         val files = s3.download(outputDir, links)
         println()
         println()
 
         println(s"Total downloaded files: ${files.size} located here: ${outputDir.getAbsolutePath}")
         println()
-      } else {
-        throw new IllegalStateException(s"Aborted by user")
+        Right()
       }
+    } else {
+      Left(Error(s"Aborted by user"))
     }
   }
 
@@ -189,17 +220,64 @@ class Download(userConfig: UserConfig,
     }
   }
 
-  private def extractManifestContent: ManifestContent = {
+  private def extractManifestContentFromEntryList(csvEntryList: List[String]): Either[Error, ManifestContent] = {
     val manifestFilePointer = scala.Option(userConfig.get(ClientManifestFilePointer)).getOrElse(appConfig.getString("manifest-file-pointer"))
     val manifestFileName = scala.Option(userConfig.get(ClientManifestFileName))
     val manifestSize = scala.Option(userConfig.get(ClientManifestFileSize)).getOrElse(appConfig.getString("manifest-size"))
     val manifestSeparator = appConfig.getString("manifest-separator").charAt(0)
 
-    if (!manifest.exists()) {
-      throw new IllegalStateException("Manifest file not found at location: " + manifest.getAbsolutePath)
-    }
+    Try {
+      val csvFormat = CSVFormat.DEFAULT
+        .withDelimiter(manifestSeparator)
+        .withIgnoreEmptyLines()
+        .withTrim()
 
-    Using(new FileReader(manifest)) { reader =>
+      val header = csvEntryList.head.split(manifestSeparator).toList
+      val record = csvEntryList.tail
+
+      val csv = record.flatMap(l => CSVParser.parse(l, csvFormat.withHeader(header: _*)).getRecords.asScala.toList)
+
+      val fileIdColumnIndex = header.indexOf(manifestFilePointer)
+      val fileDisplayNameColumnIndex = manifestFileName.map(displayCol =>  header.indexOf(displayCol))
+      val sizeColumnIndex = header.indexOf(manifestSize)
+
+      if (fileIdColumnIndex == -1) {
+        throw new IllegalStateException("Missing column: " + manifestFilePointer)
+      }
+
+      val lines = csv.flatMap(record => {
+          parseCVSRecord(record)(fileIdColumnIndex, fileDisplayNameColumnIndex.getOrElse(-1), sizeColumnIndex)
+        })
+
+      if (lines.isEmpty) {
+        throw new IllegalStateException("Empty content")
+      }
+      val hasEmptyFileSizes = lines.exists(l => l.size.isEmpty)
+
+      val totalSize = if (hasEmptyFileSizes) {
+        None
+      } else {
+        val size = lines.foldLeft(0L) { (acc, l) =>
+          l.size.map(s => acc + s).getOrElse(0L)
+        }
+        Some(size)
+      }
+
+      ManifestContent(lines, totalSize)
+    } match {
+      case Success(value) => Right(value)
+      case Failure(e) => Left(Error(s"Invalid manifest file: " + e.getMessage))
+    }
+  }
+
+  private def extractManifestContentFromFile(manifestFile: File): Either[Error, ManifestContent] = {
+    val manifestFilePointer = scala.Option(userConfig.get(ClientManifestFilePointer)).getOrElse(appConfig.getString("manifest-file-pointer"))
+    val manifestFileName = scala.Option(userConfig.get(ClientManifestFileName))
+    val manifestSize = scala.Option(userConfig.get(ClientManifestFileSize)).getOrElse(appConfig.getString("manifest-size"))
+    val manifestSeparator = appConfig.getString("manifest-separator").charAt(0)
+
+
+    Using(new FileReader(manifestFile)) { reader =>
       val parser = CSVFormat.DEFAULT
         .withDelimiter(manifestSeparator)
         .withIgnoreEmptyLines()
@@ -237,9 +315,40 @@ class Download(userConfig: UserConfig,
       ManifestContent(lines, totalSize)
 
     } match {
-      case Success(value) => value
-      case Failure(e) => throw new IllegalStateException(s"Invalid manifest file: " + e.getMessage, e)
+      case Success(value) => Right(value)
+      case Failure(e) => Left(Error(s"Invalid manifest file: " + e.getMessage))
     }
+  }
+
+
+  private def extractManifest(token: String, padding: Int): Either[Error, ManifestContent] = {
+    if (filesDownloadStyle.byManifestId.id.isPresent) {
+      CommandBlock("Checking manifest file", successEmoji, padding) {
+        fetchAndExtractManifestContentFromId(manifestId = filesDownloadStyle.byManifestId.id.get(), token)
+      }
+    } else {
+      CommandBlock("Checking manifest file", successEmoji, padding) {
+        if (filesDownloadStyle.byManifest.isPresent && !filesDownloadStyle.byManifest.get().exists()) {
+          Left(Error("Manifest file not found at location: " + filesDownloadStyle.byManifest.get().getAbsolutePath))
+        } else {
+          extractManifestContentFromFile(filesDownloadStyle.byManifest.get())
+        }
+      }
+    }
+  }
+
+  private def fetchAndExtractManifestContentFromId(manifestId: String, token: String): Either[Error, ManifestContent] = {
+    val reportApiClient = new ReportApiClient(userConfig)
+
+    val manifestEntryList = reportApiClient.getManifestContentById(manifestId, token)
+
+    manifestEntryList.flatMap(extractManifestContentFromEntryList)
+  }
+
+  private def fetchManifestFromId(manifestId: String, token: String): Either[Error, Unit] = {
+    val reportApiClient = new ReportApiClient(userConfig)
+
+    reportApiClient.downloadManifestById(manifestId, token, outputDir.getAbsolutePath)
   }
 
   private def parseCVSRecord (record: CSVRecord)
@@ -280,5 +389,22 @@ class Download(userConfig: UserConfig,
     } else {
       false; // method is null ?
     }
+  }
+}
+
+object Download {
+  //Must supply manifest path OR manifestId
+  class FilesDownloadStyle {
+    @Option(names = Array("-m", "--manifest"), required = true, description = Array("manifest file location"))
+    var byManifest: Optional[File] = Optional.empty[File]
+    @ArgGroup(exclusive = false, multiplicity = "1")
+    val byManifestId: ManifestId = new ManifestId()
+  }
+
+  class ManifestId {
+    @Option(names = Array("-i", "--manifest-id"), required = true, description = Array("manifest ID"))
+    var id: Optional[String] = Optional.empty[String]
+    @Option(names = Array("--manifest-only"), required = false, description = Array("Download the manifest only from the manifest id"))
+    var manifestOnly: Boolean = false
   }
 }

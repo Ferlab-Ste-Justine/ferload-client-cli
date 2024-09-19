@@ -81,6 +81,12 @@ class Configure(userConfig: UserConfig, appConfig: Config, commandLine: ICommand
       } else {
         None
       }
+
+      config.optString("reportApiManifestUrl") match {
+        case s if s.nonEmpty => userConfig.set(ReportApiManifestUrl, s)
+        case _ =>
+      }
+
       userConfig.set(KeycloakUrl, ferloadConfig.getString("url"))
       userConfig.set(KeycloakRealm, ferloadConfig.getString("realm"))
       userConfig.set(KeycloakAudience, ferloadConfig.getString("audience"))

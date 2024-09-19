@@ -116,12 +116,14 @@ Configuration has been successfully updated ✅
 By providing a manifest file and an output folder the tool will start downloading the files. This step is done concurrently with a secured hash validation for file integrity.
 ### Usage
 ```
-Usage: ferload-client download [-hV] [-m=<manifest>] [-o=<outputDir>]
-                               [-p=<password>]
+Usage: ferload-client download [-hV] [-o=<outputDir>] [-p=<password>]
+                               (-m=<byManifest> | (-i=<id> [--manifest-only]))
 Download files based on provided manifest.
   -h, --help      Show this help message and exit.
-  -m, --manifest=<manifest>
-                  manifest file location (default: manifest.tsv)
+  -i, --manifest-id=<id>   manifest ID
+      --manifest-only      Download the manifest only from the manifest id
+  -m, --manifest=<byManifest>
+                           manifest file location
   -o, --output-dir=<outputDir>
                   downloads location (default: .)
   -V, --version   Print version information and exit.
@@ -136,11 +138,11 @@ user@localhost:~$ ./ferload-client download -m ./data/m1.tsv -o ./data
 Welcome to Ferload Client, this tools will download
 the files based on the provided manifest.
 
-Checking manifest file                             ✅
-
 password                                   [hidden]:
 
 Retrieve user credentials                          ✅
+
+Checking manifest file                             ✅
 
 Retrieve Ferload download link(s)                  ✅
 
@@ -172,12 +174,12 @@ user@localhost:~$ ./ferload-client download -m ./data/m1.tsv -o ./data
 Welcome to Ferload Client, this tools will download
 the files based on the provided manifest.
 
-Checking manifest file                             ✅
-
 Retrieve device token                              ✅
 
 Copy/Paste this URL in your browser and login please: http://localhost:32771/realms/CQDG/device?user_code=NNLJ-AOOQ
  ✅ 
+ 
+Checking manifest file                             ✅
 
 Retrieve Ferload download link(s)                  ✅
 
@@ -191,6 +193,33 @@ FIL0000002  [##################################################]     76 /     76
 Total downloaded files: 12 located here: ./data
 
 ```
+### Example (download with device token using a manifest id)
+```
+user@localhost:~$ ./ferload-client download -i 800a290f-edcc-4ece-8c83-449fc1694afd -o ./data
+
+Welcome to Ferload Client, this tools will download
+the files based on the provided manifest.
+
+Retrieve device token                              ✅
+
+Copy/Paste this URL in your browser and login please: http://localhost:32771/realms/CQDG/device?user_code=NNLJ-AOOQ
+ ✅ 
+ 
+Retrieving Manifest from ID                        ✅
+
+Checking manifest file                             ✅
+
+Compute total average expected download size       ✅
+
+The total average expected download size will be 76 MB do you want to continue (your available disk space is: 60 GB) ? [yes]: yes
+
+FIL0000001  [##################################################]     76 /     76 MB (100%) 📦
+FIL0000002  [##################################################]     76 /     76 MB (100%) 📦
+
+Total downloaded files: 12 located here: ./data
+
+```
+
 
 *Note: in case the tool can't compute the total average expected download size, the following message will be displayed:*
 ```

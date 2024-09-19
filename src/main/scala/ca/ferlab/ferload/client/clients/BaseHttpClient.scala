@@ -1,13 +1,15 @@
 package ca.ferlab.ferload.client.clients
 
 import ca.ferlab.ferload.client.LineContent
-import org.apache.http.HttpResponse
+import org.apache.http.{HttpEntity, HttpResponse}
 import org.apache.http.client.methods.HttpRequestBase
 import org.apache.http.impl.client.{CloseableHttpClient, HttpClientBuilder}
 import org.apache.http.util.EntityUtils
 import org.json.JSONObject
 
-import scala.jdk.CollectionConverters.MapHasAsScala // scala 2.13
+import java.io.{File, FileOutputStream}
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.util.{Failure, Success, Try} // scala 2.13
 
 abstract class BaseHttpClient {
 
@@ -23,6 +25,33 @@ abstract class BaseHttpClient {
     // always properly close
     EntityUtils.consumeQuietly(response.getEntity)
     (body, response.getStatusLine.getStatusCode)
+  }
+
+  protected def executeHttpRequestAndDownload(request: HttpRequestBase, path: String, manifestId: String): Either[Error, Unit] = {
+    val response: HttpResponse = http.execute(request)
+    val extraction = Option(response.getEntity).map(e =>
+      response.getStatusLine.getStatusCode match {
+        case status if status < 300 => extractEntityLinesToFile(e, s"$path/$manifestId.tsv")
+        case status => Left(Error(s"Failed to retrieve manifest for id: $manifestId, code: $status"))
+      }
+    ).getOrElse(Left(Error("Unknown Response status")))
+
+    // always properly close
+    EntityUtils.consumeQuietly(response.getEntity)
+
+    extraction
+  }
+
+  private def extractEntityLinesToFile(entity: HttpEntity, filePath: String): Either[Error, Unit] = {
+    Try {
+      val manifestFile = new File(filePath)
+      val outputStream: FileOutputStream = new FileOutputStream(manifestFile)
+      try entity.writeTo(outputStream)
+      finally if (outputStream != null) outputStream.close()
+    } match {
+      case Success(_) => Right()
+      case Failure(e) => Left(Error(e.getMessage))
+    }
   }
 
   protected def formatExceptionMessage(message: String, status: Int, body: Option[String]): String = {

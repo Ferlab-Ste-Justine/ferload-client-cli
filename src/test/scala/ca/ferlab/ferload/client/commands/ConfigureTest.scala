@@ -1,5 +1,6 @@
 package ca.ferlab.ferload.client.commands
 
+import ca.ferlab.ferload.client.clients.Error
 import ca.ferlab.ferload.client.{LineContent, ManifestContent}
 import ca.ferlab.ferload.client.clients.inf.{ICommandLine, IFerload}
 import ca.ferlab.ferload.client.configurations._
@@ -59,25 +60,25 @@ class ConfigureTest extends AnyFunSuite with BeforeAndAfter {
   val mockFerloadInf: IFerload = new IFerload {
     override def getConfig: JSONObject = mockFerloadConfigPassword
 
-    override def getDownloadLinks(token: String, manifestContent: ManifestContent): Map[LineContent, String] = ???
+    override def getDownloadLinks(token: String, manifestContent: ManifestContent): Either[Error, Map[LineContent, String]] = ???
   }
 
   val mockFerloadTokenInf: IFerload = new IFerload {
     override def getConfig: JSONObject = mockFerloadConfigToken
 
-    override def getDownloadLinks(token: String, manifestContent: ManifestContent): Map[LineContent, String] = ???
+    override def getDownloadLinks(token: String, manifestContent: ManifestContent): Either[Error, Map[LineContent, String]] = ???
   }
 
   val mockFerloadDeviceInf: IFerload = new IFerload {
     override def getConfig: JSONObject = mockFerloadConfigDevice
 
-    override def getDownloadLinks(token: String, manifestContent: ManifestContent): Map[LineContent, String] = ???
+    override def getDownloadLinks(token: String, manifestContent: ManifestContent): Either[Error, Map[LineContent, String]] = ???
   }
 
   val mockFerloadUnkownMethodInf: IFerload = new IFerload {
     override def getConfig: JSONObject = new JSONObject().put("method", "foo")
 
-    override def getDownloadLinks(token: String, manifestContent: ManifestContent): Map[LineContent, String] = ???
+    override def getDownloadLinks(token: String, manifestContent: ManifestContent): Either[Error, Map[LineContent, String]] = ???
   }
 
   before {
