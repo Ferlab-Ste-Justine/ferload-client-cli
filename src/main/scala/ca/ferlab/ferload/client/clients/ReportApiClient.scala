@@ -6,10 +6,7 @@ import org.apache.http.HttpHeaders
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.entity.ContentType
 
-import java.util.stream.Stream
 import java.net.URI
-import java.util.stream.Collectors
-import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 class ReportApiClient(userConfig: UserConfig) extends BaseHttpClient with IReportApi {
   lazy val url: String = userConfig.get(ReportApiManifestUrl)
@@ -24,7 +21,7 @@ class ReportApiClient(userConfig: UserConfig) extends BaseHttpClient with IRepor
 
     status match {
       case s if s < 300  =>
-        Right(body.get.lines.asInstanceOf[Stream[String]].collect(Collectors.toList[String]).asScala.toList)
+        Right(body.get.lines.toArray.asInstanceOf[Array[String]].toList)
       case _ => Left(Error(formatExceptionMessage(s"Failed to retrieve manifest for id: $manifestId", status, body)))
     }
   }
