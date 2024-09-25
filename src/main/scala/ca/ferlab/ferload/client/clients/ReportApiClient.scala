@@ -22,7 +22,7 @@ class ReportApiClient(userConfig: UserConfig) extends BaseHttpClient with IRepor
     status match {
       case s if s < 300  =>
         Right(body.get.lines.toArray.asInstanceOf[Array[String]].toList)
-      case _ => Left(Error(formatExceptionMessage(s"Failed to retrieve manifest for id: $manifestId", status, body)))
+      case _ => Left(Error("Invalid manifest ID"))
     }
   }
 
